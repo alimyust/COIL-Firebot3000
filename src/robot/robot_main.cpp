@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "DualHWPwm.hpp"
-  
+
 DualHardwarePWM pwm(9, 5);  // Pin 9 for drive, Pin 5 for steering
 
 void setup() {
