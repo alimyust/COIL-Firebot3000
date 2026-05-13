@@ -1,22 +1,52 @@
 #include <Arduino.h>
+#include "DualHWPwm.hpp"
 
-constexpr uint8_t DRIVE_PWM_PIN = 5;
-constexpr uint8_t STEERING_PWM_PIN = 10;
+const uint8_t DRIVE_PWM_PIN = 9;
+const uint8_t STEER_PWM_PIN = 5;
+const uint8_t JOY_X_PIN = A1;
+const uint8_t JOY_Y_PIN = A2;
 
-constexpr uint8_t dutyPercentToAnalogValue(uint8_t percent) {
-  return static_cast<uint8_t>((static_cast<uint16_t>(percent) * 255) / 100);
+const uint32_t PWM_FREQUENCY = 50;
+const uint8_t SERVO_DUTY_MIN = 5;   // ~1.0 ms at 50 Hz
+const uint8_t SERVO_DUTY_CENTER = 8; // ~1.5 ms at 50 Hz
+const uint8_t SERVO_DUTY_MAX = 10;  // ~2.0 ms at 50 Hz
+const uint16_t JOYSTICK_DEADZONE = 32;
+
+DualHardwarePWM pwm(DRIVE_PWM_PIN, STEER_PWM_PIN);
+
+uint8_t joystickToServoDuty(uint8_t analogPin) {
+    int raw = analogRead(analogPin);
+    raw = constrain(raw, 0, 1023);
+
+    if (raw >= 512 - JOYSTICK_DEADZONE && raw <= 512 + JOYSTICK_DEADZONE) {
+        return SERVO_DUTY_CENTER;
+    }
+
+    return (uint8_t)map(raw, 0, 1023, SERVO_DUTY_MIN, SERVO_DUTY_MAX);
 }
 
 void setup() {
-  pinMode(DRIVE_PWM_PIN, OUTPUT);
-  pinMode(STEERING_PWM_PIN, OUTPUT);
-  Serial.begin(9600);
+    Serial.begin(9600);
+    pwm.begin(PWM_FREQUENCY);
+
+    pinMode(JOY_X_PIN, INPUT);
+    pinMode(JOY_Y_PIN, INPUT);
+
+    Serial.println("DualHardwarePWM joystick control started");
 }
 
 void loop() {
+    uint8_t driveDuty = joystickToServoDuty(JOY_Y_PIN);
+    uint8_t steerDuty = joystickToServoDuty(JOY_X_PIN);
 
-  analogWrite(STEERING_PWM_PIN, dutyPercentToAnalogValue(0));
-  delay(200);
-  analogWrite(STEERING_PWM_PIN, dutyPercentToAnalogValue(50));
-  delay(200);
+    pwm.setDutyCycle1(driveDuty);
+    pwm.setDutyCycle2(steerDuty);
+
+    Serial.print("Drive duty: ");
+    Serial.print(driveDuty);
+    Serial.print("%  Steer duty: ");
+    Serial.print(steerDuty);
+    Serial.println("%");
+
+    delay(50);
 }

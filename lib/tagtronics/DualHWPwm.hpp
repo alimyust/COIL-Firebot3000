@@ -5,7 +5,7 @@
 
 class DualHardwarePWM {
 public:
-    DualHardwarePWM(uint8_t pin1, uint8_t pin2);
+    DualHardwarePWM(uint8_t pin1 = 9, uint8_t pin2 = 5);
     
     void begin(uint32_t frequency = 60);
     void setDutyCycle1(uint8_t percent);
