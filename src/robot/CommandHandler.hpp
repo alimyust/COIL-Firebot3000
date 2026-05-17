@@ -13,6 +13,8 @@ public:
     void initialize(uint32_t frequency = 60);
     void setMotorSpeed(uint8_t speed);
     void setSteeringAngle(uint8_t angle);
+    void setThrottleDuty(uint8_t duty);
+    void setSteeringDuty(uint8_t duty);
 
 private:
     DualHardwarePWM &_motor_pwm;
