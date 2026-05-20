@@ -1,6 +1,12 @@
 #include "DualHWPwm.hpp"
 #include <Arduino.h>
 
+
+// pin 9 : TCC1[1]
+// pin 5 : TCC0[5]
+//pin 11 : TCC0[6] && TCC2[0]
+
+
 DualHardwarePWM::DualHardwarePWM(uint8_t pin1, uint8_t pin2) 
   : _pin1(pin1), _pin2(pin2), _timer1(nullptr), _timer2(nullptr) {}
 

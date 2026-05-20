@@ -5,7 +5,7 @@
 
 class Controller {
 public:
-    Controller(uint8_t joyXPin = A1, uint8_t joyYPin = A2);
+    Controller(uint8_t joyXPin = A3, uint8_t joyYPin = A2);
 
     void begin();
     void update();

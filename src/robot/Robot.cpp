@@ -1,70 +1,59 @@
 #include <Arduino.h>
 #include "DualHWPwm.hpp"
-#include "RFComm.hpp"
 
 namespace {
 
 constexpr uint8_t DRIVE_PWM_PIN = 9;
 constexpr uint8_t STEER_PWM_PIN = 5;
-constexpr uint8_t ROBOT_NODE_ID = 1;
-constexpr float RF_FREQUENCY_MHZ = 868.0f;
-constexpr uint32_t PWM_FREQUENCY_HZ = 50;
+constexpr uint32_t PWM_FREQUENCY_HZ = 60;
+constexpr uint32_t STEP_DELAY_MS = 2000;
 
-enum CommandId : uint8_t {
-    MOTOR_SPEED = 0x01,
-    STEERING = 0x02,
-    BATTERY = 0x03,
-    HEARTBEAT = 0x04,
-    THROTTLE = 0x05,
-    STEERING_DUTY = 0x06,
-};
+constexpr uint8_t THROTTLE_MIN_DUTY = 7;
+constexpr uint8_t THROTTLE_NEUTRAL_DUTY = 9;
+constexpr uint8_t THROTTLE_MAX_DUTY = 10;
+
+constexpr uint8_t STEERING_MIN_DUTY = 6;
+constexpr uint8_t STEERING_NEUTRAL_DUTY = 9;
+constexpr uint8_t STEERING_MAX_DUTY = 12;
 
 DualHardwarePWM pwm(DRIVE_PWM_PIN, STEER_PWM_PIN);
-RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
 
-void setThrottleDuty(uint8_t duty) {
-    pwm.setDutyCycle1(duty);
-    Serial.print("Throttle duty set to: ");
-    Serial.println(duty);
-}
+void setOutputs(uint8_t throttleDuty, uint8_t steeringDuty, const char* label) {
+    pwm.setDutyCycle1(throttleDuty);
+    pwm.setDutyCycle2(steeringDuty);
 
-void setSteeringDuty(uint8_t duty) {
-    pwm.setDutyCycle2(duty);
-    Serial.print("Steering duty set to: ");
-    Serial.println(duty);
-}
-
-void handlePacket(RF69_Packet &packet) {
-    switch (packet.command) {
-        case THROTTLE:
-            setThrottleDuty(static_cast<uint8_t>(atoi(packet.payload)));
-            break;
-        case STEERING_DUTY:
-            setSteeringDuty(static_cast<uint8_t>(atoi(packet.payload)));
-            break;
-        case MOTOR_SPEED:
-        case STEERING:
-        case BATTERY:
-        case HEARTBEAT:
-        default:
-            break;
-    }
-}
-
-void receiveCallback(RF69_Packet &packet) {
-    handlePacket(packet);
+    Serial.print(label);
+    Serial.print(" throttle=");
+    Serial.print(throttleDuty);
+    Serial.print("% steering=");
+    Serial.print(steeringDuty);
+    Serial.println("%");
 }
 
 }
 
 void setup() {
-    Serial.begin(9600);
-    comm.set_receive_handler(receiveCallback);
-    comm.begin(nullptr, "encryptionkey16");
+    Serial.begin(115200);
+    while (!Serial) {}
+
     pwm.begin(PWM_FREQUENCY_HZ);
-    Serial.println("Robot started");
+    setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_NEUTRAL_DUTY, "Startup neutral");
+    delay(STEP_DELAY_MS);
 }
 
 void loop() {
-    comm.update();
+    setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_NEUTRAL_DUTY, "Neutral");
+    delay(STEP_DELAY_MS);
+
+    setOutputs(THROTTLE_MIN_DUTY, STEERING_NEUTRAL_DUTY, "Throttle min");
+    delay(STEP_DELAY_MS);
+
+    setOutputs(THROTTLE_MAX_DUTY, STEERING_NEUTRAL_DUTY, "Throttle max");
+    delay(STEP_DELAY_MS);
+
+    setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_MIN_DUTY, "Steering min");
+    delay(STEP_DELAY_MS);
+
+    setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_MAX_DUTY, "Steering max");
+    delay(STEP_DELAY_MS);
 }
