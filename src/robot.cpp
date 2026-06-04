@@ -2,7 +2,6 @@
 #include "DualHWPwm.hpp"
 
 namespace {
-
 constexpr uint8_t DRIVE_PWM_PIN = 9;
 constexpr uint8_t STEER_PWM_PIN = 5;
 constexpr uint32_t PWM_FREQUENCY_HZ = 60;
