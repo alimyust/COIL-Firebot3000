@@ -1,89 +1,58 @@
 
 
-// #include "Controller.hpp"
-// #include "Display.hpp"
 #include "ProtocolLayer.hpp"
 #include "Arduino.h"
 
+namespace {
+constexpr uint8_t ROBOT_NODE_ID = 20;
+constexpr uint8_t CONTROLLER_NODE_ID = 10;
+constexpr float RF_FREQUENCY_MHZ = 868.0f;
+constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
 
-// #include "Joystick.hpp"
+RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
+ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
 
-// Joystick joy_x(A3, A2, true);
+void onThrottleCommand(uint8_t duty) {
+    Serial.print("RX throttle=");
+    Serial.println(duty);
+    // TODO: drive motor PWM or ESC using this duty value.
+}
 
-// void setup() {
-//     // Serial.begin(115200);
-//     // while (!Serial) {}
-//     // joy_x.init_joystick();
-// }
+void onSteeringCommand(uint8_t duty) {
+    Serial.print("RX steering=");
+    Serial.println(duty);
+    // TODO: control steering servo using this duty value.
+}
 
-// void loop() {
-//     // int x = 0, y = 0;
-//     // // joy_x.update_joystick(x, y);
-//     // Serial.print("X=");
-//     //  Serial.print(x);
-//     // Serial.print(" Y="); Serial.println(y);
-//     // delay(100);
-// }
+void onMotorSpeed(uint8_t speed) {
+    Serial.print("RX motor speed=");
+    Serial.println(speed);
+}
 
+void onSteeringAngle(uint8_t angle) {
+    Serial.print("RX steering angle=");
+    Serial.println(angle);
+}
+}
 
+void setup() {
+    Serial.begin(115200);
+    while (!Serial) {}
 
-// Functional PWM demo
+    if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
+        Serial.println("Robot radio init failed");
+        return;
+    }
 
-// #include <Arduino.h>
-// #include "DualHWPwm.hpp"
+    protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
+    protocol.setThrottleCallback(onThrottleCommand);
+    protocol.setSteeringDutyCallback(onSteeringCommand);
+    protocol.setMotorCallback(onMotorSpeed);
+    protocol.setSteeringCallback(onSteeringAngle);
 
-// namespace {
-// constexpr uint8_t DRIVE_PWM_PIN = 9;
-// constexpr uint8_t STEER_PWM_PIN = 5;
-// constexpr uint32_t PWM_FREQUENCY_HZ = 60;
-// constexpr uint32_t STEP_DELAY_MS = 2000;
+    Serial.println("Robot radio started");
+}
 
-// constexpr uint8_t THROTTLE_MIN_DUTY = 7;
-// constexpr uint8_t THROTTLE_NEUTRAL_DUTY = 9;
-// constexpr uint8_t THROTTLE_MAX_DUTY = 10;
-
-// constexpr uint8_t STEERING_MIN_DUTY = 6;
-// constexpr uint8_t STEERING_NEUTRAL_DUTY = 9;
-// constexpr uint8_t STEERING_MAX_DUTY = 12;
-
-// DualHardwarePWM pwm(DRIVE_PWM_PIN, STEER_PWM_PIN);
-
-// void setOutputs(uint8_t throttleDuty, uint8_t steeringDuty, const char* label) {
-//     pwm.setDutyCycle1(throttleDuty);
-//     pwm.setDutyCycle2(steeringDuty);
-
-//     Serial.print(label);
-//     Serial.print(" throttle=");
-//     Serial.print(throttleDuty);
-//     Serial.print("% steering=");
-//     Serial.print(steeringDuty);
-//     Serial.println("%");
-// }
-
-// }
-
-// void setup() {
-//     Serial.begin(115200);
-//     while (!Serial) {}
-
-//     pwm.begin(PWM_FREQUENCY_HZ);
-//     setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_NEUTRAL_DUTY, "Startup neutral");
-//     delay(STEP_DELAY_MS);
-// }
-
-// void loop() {
-//     setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_NEUTRAL_DUTY, "Neutral");
-//     delay(STEP_DELAY_MS);
-
-//     setOutputs(THROTTLE_MIN_DUTY, STEERING_NEUTRAL_DUTY, "Throttle min");
-//     delay(STEP_DELAY_MS);
-
-//     setOutputs(THROTTLE_MAX_DUTY, STEERING_NEUTRAL_DUTY, "Throttle max");
-//     delay(STEP_DELAY_MS);
-
-//     setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_MIN_DUTY, "Steering min");
-//     delay(STEP_DELAY_MS);
-
-//     setOutputs(THROTTLE_NEUTRAL_DUTY, STEERING_MAX_DUTY, "Steering max");
-//     delay(STEP_DELAY_MS);
-// }
+void loop() {
+    protocol.process();
+}

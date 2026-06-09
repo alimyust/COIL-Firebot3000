@@ -8,7 +8,7 @@
 
 class ProtocolLayer {
 public:
-    ProtocolLayer(RF69_Comm &comm);
+    ProtocolLayer(RF69_Comm &comm, uint8_t remoteNodeId = 1);
 
     void process();  // handles RX
 
@@ -20,6 +20,8 @@ public:
     bool sendSteering(uint8_t duty);
     bool sendBatteryLevel(float level);
     bool sendHeartbeat();
+
+    void setRemoteNodeId(uint8_t remoteNodeId);
 
     // callbacks to RobotHandler
     void setMotorCallback(void (*cb)(uint8_t));
@@ -43,6 +45,7 @@ private:
     void handlePacket(RF69_Packet &packet);
 
     RF69_Comm &_comm;
+    uint8_t _remote_node_id;
     void (*_motor_cb)(uint8_t);
     void (*_steering_cb)(uint8_t);
     void (*_throttle_cb)(uint8_t);
