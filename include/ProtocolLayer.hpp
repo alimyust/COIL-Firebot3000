@@ -13,6 +13,7 @@ public:
     void process();  // handles RX
 
     // outgoing commands
+
     bool sendMotorSpeed(uint8_t speed);
     bool sendSteeringAngle(uint8_t angle);
     bool sendThrottle(uint8_t duty);
