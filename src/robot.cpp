@@ -1,6 +1,7 @@
 
 
 #include "ProtocolLayer.hpp"
+#include "DualHWPwm.hpp"
 #include "Arduino.h"
 
 namespace {
@@ -8,20 +9,22 @@ constexpr uint8_t ROBOT_NODE_ID = 20;
 constexpr uint8_t CONTROLLER_NODE_ID = 10;
 constexpr float RF_FREQUENCY_MHZ = 868.0f;
 constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
+constexpr uint32_t PWM_FREQUENCY_HZ = 60;
 
 RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
 ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
+DualHardwarePWM pwm(9, 5);
 
 void onThrottleCommand(uint8_t duty) {
     Serial.print("RX throttle=");
     Serial.println(duty);
-    // TODO: drive motor PWM or ESC using this duty value.
+    pwm.setDutyCycle1(duty);
 }
 
 void onSteeringCommand(uint8_t duty) {
     Serial.print("RX steering=");
     Serial.println(duty);
-    // TODO: control steering servo using this duty value.
+    pwm.setDutyCycle2(duty);
 }
 
 void onMotorSpeed(uint8_t speed) {
@@ -43,6 +46,10 @@ void setup() {
         Serial.println("Robot radio init failed");
         return;
     }
+
+    pwm.begin(PWM_FREQUENCY_HZ);
+    pwm.setDutyCycle1(0);
+    pwm.setDutyCycle2(0);
 
     protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
     protocol.setThrottleCallback(onThrottleCommand);
