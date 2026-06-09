@@ -56,7 +56,7 @@ void setup() {
     }
 
     throttleServo.attach(9);
-    steeringServo.attach(5);
+    steeringServo.attach(11);
     throttleServo.writeMicroseconds(SERVO_MIN_US);
     steeringServo.writeMicroseconds(SERVO_MIN_US);
 
