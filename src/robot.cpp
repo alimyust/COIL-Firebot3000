@@ -65,6 +65,7 @@ void setup() {
     // pwm.setDutyCycle2(0);
 
     protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
+    
     protocol.setThrottleCallback(onThrottleCommand);
     protocol.setSteeringDutyCallback(onSteeringCommand);
     protocol.setMotorCallback(onMotorSpeed);
