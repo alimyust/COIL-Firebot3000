@@ -1,11 +1,13 @@
 #include "RFComm.hpp"
 #include <string.h>
 
+volatile bool RF69_Comm::s_packet_ready = false;
+
 RF69_Comm::RF69_Comm(uint8_t node_id, float frequency, uint8_t cs_pin, 
                      uint8_t int_pin, uint8_t rst_pin) 
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
-    _rst_pin(rst_pin), _receive_handler(nullptr), _debug_enabled(false),
-    _last_rssi(0) {}
+    _rst_pin(rst_pin), _int_pin(int_pin), _receive_handler(nullptr),
+    _debug_enabled(false), _last_rssi(0) {}
 
 bool RF69_Comm::begin(const uint8_t* sync_words, const char* encryption_key) {
     // Hardware reset
@@ -19,7 +21,7 @@ bool RF69_Comm::begin(const uint8_t* sync_words, const char* encryption_key) {
 
     // Initialize radio
     if (!_radio.init()) {
-        if (_debug_enabled) Serial.println("RFM69 init failed");
+        if (_debug_enabled) Serial.println("RFM95 init failed");
         return false;
     }
     
@@ -41,11 +43,18 @@ bool RF69_Comm::begin(const uint8_t* sync_words, const char* encryption_key) {
     if (encryption_key != nullptr) {
         _radio.setEncryptionKey((uint8_t*)encryption_key);
     }
+
+    // Configure the DIO0 interrupt pin for packet-ready events.
+    pinMode(_int_pin, INPUT);
+    attachInterrupt(digitalPinToInterrupt(_int_pin), RF69_Comm::onRadioInterrupt, RISING);
+
+    _radio.setModeRx();
     
     if (_debug_enabled) {
         Serial.println("Radio initialized successfully");
         Serial.print("Node ID: "); Serial.println(_node_id);
         Serial.print("Frequency: "); Serial.print(_frequency); Serial.println(" MHz");
+        Serial.print("Interrupt pin: "); Serial.println(_int_pin);
     }
     
     return true;
@@ -90,9 +99,18 @@ bool RF69_Comm::send(uint8_t receiver_id, uint8_t command, const char* message) 
     return false;
 }
 
+void RF69_Comm::onRadioInterrupt() {
+    s_packet_ready = true;
+}
+
 void RF69_Comm::update() {
-    // Only process one packet per update to avoid flooding
-    if (_radio.available()) {
+    if (!s_packet_ready && !_radio.available()) {
+        return;
+    }
+
+    s_packet_ready = false;
+
+    while (_radio.available()) {
         RF69_Packet packet;
         uint8_t len = sizeof(packet);
         
@@ -127,6 +145,8 @@ void RF69_Comm::update() {
             
             // Put radio back in receive mode
             _radio.setModeRx();
+        } else {
+            break;
         }
     }
 }
