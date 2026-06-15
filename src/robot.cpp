@@ -1,7 +1,7 @@
 
 
 #include "ProtocolLayer.hpp"
-// #include "DualHWPwm.hpp"
+#include "DualHWPwm.hpp"
 #include <Servo.h>
 #include "Arduino.h"
 
@@ -15,9 +15,9 @@ constexpr uint16_t SERVO_MAX_US = 2000;
 
 RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
 ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
-// DualHardwarePWM pwm(9, 5);
-Servo throttleServo;
-Servo steeringServo;
+DualHardwarePWM pwm(9, 5);
+// Servo throttleServo;
+// Servo steeringServo;
 
 uint16_t dutyToMicroseconds(uint8_t duty) {
     return map(duty, 0, 100, SERVO_MIN_US, SERVO_MAX_US);
@@ -26,13 +26,15 @@ uint16_t dutyToMicroseconds(uint8_t duty) {
 void onThrottleCommand(uint8_t duty) {
     Serial.print("RX throttle=");
     Serial.println(duty);
-    throttleServo.writeMicroseconds(dutyToMicroseconds(duty));
+    // throttleServo.writeMicroseconds(dutyToMicroseconds(duty));
+    pwm.setDutyCycle1(duty);
 }
 
 void onSteeringCommand(uint8_t duty) {
     Serial.print("RX steering=");
     Serial.println(duty);
-    steeringServo.writeMicroseconds(dutyToMicroseconds(duty));
+    // steeringServo.writeMicroseconds(dutyToMicroseconds(duty));
+    pwm.setDutyCycle2(duty);
 }
 
 void onMotorSpeed(uint8_t speed) {
@@ -55,14 +57,14 @@ void setup() {
         return;
     }
 
-    throttleServo.attach(9);
-    steeringServo.attach(11);
-    throttleServo.writeMicroseconds(SERVO_MIN_US);
-    steeringServo.writeMicroseconds(SERVO_MIN_US);
+    // throttleServo.attach(9);
+    // steeringServo.attach(11);
+    // throttleServo.writeMicroseconds(SERVO_MIN_US);
+    // steeringServo.writeMicroseconds(SERVO_MIN_US);
 
-    // pwm.begin(PWM_FREQUENCY_HZ);
-    // pwm.setDutyCycle1(0);
-    // pwm.setDutyCycle2(0);
+    pwm.begin(60);
+    pwm.setDutyCycle1(0);
+    pwm.setDutyCycle2(0);
 
     protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
     
