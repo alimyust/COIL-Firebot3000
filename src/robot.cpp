@@ -20,7 +20,7 @@ DualHardwarePWM pwm(9, 5);
 // Servo steeringServo;
 
 uint16_t dutyToMicroseconds(uint8_t duty) {
-    return map(duty, 0, 100, SERVO_MIN_US, SERVO_MAX_US);
+    return map(duty, -100, 100, SERVO_MIN_US, SERVO_MAX_US);
 }
 
 void onThrottleCommand(uint8_t duty) {
