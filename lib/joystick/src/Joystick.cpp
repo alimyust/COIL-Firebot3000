@@ -6,7 +6,7 @@ void Joystick::init_joystick() {
 }
 
 void Joystick::update_joystick(int &outX, int &outY) {
-    constexpr int CENTER = 512;
+    constexpr int CENTER = 0; // keep range (0-1024)
     constexpr int DEADZONE = 50;
 
     int x = analogRead(joyXPin) - CENTER;

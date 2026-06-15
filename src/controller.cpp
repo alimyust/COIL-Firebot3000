@@ -7,20 +7,20 @@ constexpr uint8_t CONTROLLER_NODE_ID = 10;
 constexpr uint8_t ROBOT_NODE_ID = 20;
 constexpr float RF_FREQUENCY_MHZ = 868.0f;
 constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
-constexpr unsigned long SEND_INTERVAL_MS = 100;
+constexpr unsigned long SEND_INTERVAL_MS = 20;
 
 RF69_Comm comm(CONTROLLER_NODE_ID, RF_FREQUENCY_MHZ);
 ProtocolLayer protocol(comm, ROBOT_NODE_ID);
-Joystick robot_joy(A3, A2, true);
+Joystick robot_joy(A3, A2, false);
 
 int lastThrottleDuty = -1;
 int lastSteeringDuty = -1;
 unsigned long lastSendTime = 0;
 
 uint8_t mapJoystickToDuty(int value) {
-    const int range = 512;
-    value = constrain(value, -range, range);
-    return static_cast<uint8_t>(map(value, -range, range, -250, 250));
+    const int range = 1024;
+    value = constrain(value, 0, range);
+    return static_cast<uint8_t>(map(value, 0, range, 0, 100));
 }
 
 void sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
@@ -56,11 +56,11 @@ void loop() {
 
     const unsigned long now = millis();
     if (now - lastSendTime >= SEND_INTERVAL_MS) {
-        if (steeringDuty != lastSteeringDuty || throttleDuty != lastThrottleDuty) {
-            sendControlValues(throttleDuty, steeringDuty);
-            lastSteeringDuty = steeringDuty;
-            lastThrottleDuty = throttleDuty;
-        }
+        // if (steeringDuty != lastSteeringDuty || throttleDuty != lastThrottleDuty) {
+        sendControlValues(throttleDuty, steeringDuty);
+        lastSteeringDuty = steeringDuty;
+        lastThrottleDuty = throttleDuty;
+        // }
         lastSendTime = now;
     }
 }
