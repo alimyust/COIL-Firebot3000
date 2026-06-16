@@ -23,28 +23,33 @@ uint16_t dutyToMicroseconds(uint8_t duty) {
     return map(duty, -100, 100, SERVO_MIN_US, SERVO_MAX_US);
 }
 
+uint16_t rangeToDuty(int16_t value) {
+    return map(value, 0, 50, 7, 13);
+}
+
 void onThrottleCommand(uint8_t duty) {
     Serial.print("RX throttle=");
-    Serial.println(duty);
+    Serial.println(rangeToDuty(duty));
     // throttleServo.writeMicroseconds(dutyToMicroseconds(duty));
-    pwm.setDutyCycle1(duty);
+    pwm.setDutyCycle1(rangeToDuty(duty));
 }
 
 void onSteeringCommand(uint8_t duty) {
     Serial.print("RX steering=");
-    Serial.println(duty);
+    Serial.println(rangeToDuty(duty));
     // steeringServo.writeMicroseconds(dutyToMicroseconds(duty));
-    pwm.setDutyCycle2(duty);
+
+    pwm.setDutyCycle2(rangeToDuty(duty));
 }
 
 void onMotorSpeed(uint8_t speed) {
     Serial.print("RX motor speed=");
-    Serial.println(speed);
+    Serial.println(rangeToDuty(speed));
 }
 
 void onSteeringAngle(uint8_t angle) {
     Serial.print("RX steering angle=");
-    Serial.println(angle);
+    Serial.println(rangeToDuty(angle));
 }
 }
 
