@@ -19,18 +19,6 @@ void ProtocolLayer::setRemoteNodeId(uint8_t remoteNodeId) {
     _remote_node_id = remoteNodeId;
 }
 
-bool ProtocolLayer::sendMotorSpeed(uint8_t speed) {
-    char buf[4];
-    sprintf(buf, "%d", speed);
-    return _comm.send(_remote_node_id, MOTOR_SPEED, buf);
-}
-
-bool ProtocolLayer::sendSteeringAngle(uint8_t angle) {
-    char buf[4];
-    sprintf(buf, "%d", angle);
-    return _comm.send(_remote_node_id, STEERING, buf);
-}
-
 bool ProtocolLayer::sendThrottle(uint8_t duty) {
     char buf[4];
     sprintf(buf, "%d", duty);
@@ -53,13 +41,6 @@ bool ProtocolLayer::sendHeartbeat() {
     return _comm.send(_remote_node_id, HEARTBEAT, "HB");
 }
 
-void ProtocolLayer::setMotorCallback(void (*cb)(uint8_t)) {
-    _motor_cb = cb;
-}
-
-void ProtocolLayer::setSteeringCallback(void (*cb)(uint8_t)) {
-    _steering_cb = cb;
-}
 
 void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
     _throttle_cb = cb;
@@ -77,28 +58,16 @@ void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
 
 void ProtocolLayer::handlePacket(RF69_Packet &packet) {
     switch (packet.command) {
-        case MOTOR_SPEED:
-            if (_motor_cb) {
-                uint8_t speed = atoi(packet.payload);
-                _motor_cb(speed);
-            }
-            break;
-        case STEERING:
-            if (_steering_cb) {
-                uint8_t angle = atoi(packet.payload);
-                _steering_cb(angle);
+        case STEERING_DUTY:
+            if (_steering_duty_cb) {
+                uint8_t duty = atoi(packet.payload);
+                _steering_duty_cb(duty);
             }
             break;
         case THROTTLE:
             if (_throttle_cb) {
                 uint8_t duty = atoi(packet.payload);
                 _throttle_cb(duty);
-            }
-            break;
-        case STEERING_DUTY:
-            if (_steering_duty_cb) {
-                uint8_t duty = atoi(packet.payload);
-                _steering_duty_cb(duty);
             }
             break;
         default:

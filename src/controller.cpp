@@ -20,7 +20,8 @@ unsigned long lastSendTime = 0;
 uint8_t mapJoystickToDuty(int value) {
     const int range = 1024;
     value = constrain(value, 0, range);
-    return static_cast<uint8_t>(map(value, 0, range, 0, 100));
+    return static_cast<uint8_t>(map(value, 0, range, 3, 12));
+    // Map joystick range (0-1024) to duty cycle range (3-12)
 }
 
 void sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {

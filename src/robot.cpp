@@ -16,42 +16,23 @@ constexpr uint16_t SERVO_MAX_US = 2000;
 RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
 ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
 DualHardwarePWM pwm(9, 5);
-// Servo throttleServo;
-// Servo steeringServo;
-
-uint16_t dutyToMicroseconds(uint8_t duty) {
-    return map(duty, -100, 100, SERVO_MIN_US, SERVO_MAX_US);
-}
 
 uint16_t rangeToDuty(int16_t value) {
-    return map(value, 0, 50, 7, 13);
+    return map(value, 0, 50, 4, 13);
 }
 
 void onThrottleCommand(uint8_t duty) {
     Serial.print("RX throttle=");
     Serial.println(rangeToDuty(duty));
-    // throttleServo.writeMicroseconds(dutyToMicroseconds(duty));
     pwm.setDutyCycle1(rangeToDuty(duty));
 }
 
 void onSteeringCommand(uint8_t duty) {
     Serial.print("RX steering=");
     Serial.println(rangeToDuty(duty));
-    // steeringServo.writeMicroseconds(dutyToMicroseconds(duty));
-
     pwm.setDutyCycle2(rangeToDuty(duty));
 }
 
-void onMotorSpeed(uint8_t speed) {
-    Serial.print("RX motor speed=");
-    Serial.println(rangeToDuty(speed));
-}
-
-void onSteeringAngle(uint8_t angle) {
-    Serial.print("RX steering angle=");
-    Serial.println(rangeToDuty(angle));
-}
-}
 
 void setup() {
     Serial.begin(115200);
@@ -75,9 +56,7 @@ void setup() {
     
     protocol.setThrottleCallback(onThrottleCommand);
     protocol.setSteeringDutyCallback(onSteeringCommand);
-    protocol.setMotorCallback(onMotorSpeed);
-    protocol.setSteeringCallback(onSteeringAngle);
-
+    
     Serial.println("Robot radio started");
 }
 
