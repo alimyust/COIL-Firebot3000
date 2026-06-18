@@ -45,9 +45,9 @@ public:
 
     void setRemoteNodeId(uint8_t remoteNodeId);
 
-    // callbacks to RobotHandler
+    // callback to link to motor control logic
     void setThrottleCallback(void (*cb)(uint8_t));
-    void setSteeringDutyCallback(void (*cb)(uint8_t));
+    void setSteeringCallback(void (*cb)(uint8_t));
 
     enum CommandID : uint8_t {
         MOTOR_SPEED = 0x01,
@@ -66,8 +66,6 @@ private:
 
     RF69_Comm &_comm;
     uint8_t _remote_node_id;
-    void (*_motor_cb)(uint8_t);
     void (*_steering_cb)(uint8_t);
     void (*_throttle_cb)(uint8_t);
-    void (*_steering_duty_cb)(uint8_t);
 };

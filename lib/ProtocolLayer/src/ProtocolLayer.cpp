@@ -6,7 +6,7 @@
 ProtocolLayer *ProtocolLayer::s_instance = nullptr;
 
 ProtocolLayer::ProtocolLayer(RF69_Comm &comm, uint8_t remoteNodeId)
-    : _comm(comm), _remote_node_id(remoteNodeId), _motor_cb(nullptr), _steering_cb(nullptr), _throttle_cb(nullptr), _steering_duty_cb(nullptr) {
+    : _comm(comm), _remote_node_id(remoteNodeId), _steering_cb(nullptr), _throttle_cb(nullptr) {
     s_instance = this;
     _comm.set_receive_handler(&ProtocolLayer::receiveCallback);
 }
@@ -46,8 +46,8 @@ void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
     _throttle_cb = cb;
 }
 
-void ProtocolLayer::setSteeringDutyCallback(void (*cb)(uint8_t)) {
-    _steering_duty_cb = cb;
+void ProtocolLayer::setSteeringCallback(void (*cb)(uint8_t)) {
+    _steering_cb = cb;
 }
 
 void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
@@ -58,15 +58,15 @@ void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
 
 void ProtocolLayer::handlePacket(RF69_Packet &packet) {
     switch (packet.command) {
-        case STEERING_DUTY:
-            if (_steering_duty_cb) {
-                uint8_t duty = atoi(packet.payload);
-                _steering_duty_cb(duty);
+        case STEERING:
+            if (_steering_cb) {
+                float duty = atof(packet.payload);
+                _steering_cb(duty);
             }
             break;
         case THROTTLE:
             if (_throttle_cb) {
-                uint8_t duty = atoi(packet.payload);
+                float duty = atof(packet.payload);
                 _throttle_cb(duty);
             }
             break;
