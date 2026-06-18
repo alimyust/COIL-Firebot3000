@@ -58,19 +58,21 @@ void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
 
 void ProtocolLayer::handlePacket(RF69_Packet &packet) {
     switch (packet.command) {
-        case STEERING:
+        case STEERING_DUTY:
             if (_steering_cb) {
-                float duty = atof(packet.payload);
+                uint8_t duty = atof(packet.payload);
                 _steering_cb(duty);
             }
             break;
         case THROTTLE:
             if (_throttle_cb) {
-                float duty = atof(packet.payload);
+                uint8_t duty = atof(packet.payload);
                 _throttle_cb(duty);
             }
             break;
         default:
+            Serial.print("Unknown command received: ");
+            Serial.println(packet.command);
             break;
     }
 }

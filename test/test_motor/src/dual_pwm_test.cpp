@@ -53,19 +53,10 @@ void loop() {
     static int duty = 0;
     static int step = 10;
 
-    pwm.setDutyCycle1(duty);
-    pwm.setDutyCycle2(100 - duty);
+    pwm.setDutyCycle1(7);
+    pwm.setDutyCycle2(0); 
 
-    duty += step;
 
-    if (duty >= 100) {
-        duty = 100;
-        step = -10;
-    }
-    else if (duty <= 0) {
-        duty = 0;
-        step = 10;
-    }
 
     delay(250);
 }

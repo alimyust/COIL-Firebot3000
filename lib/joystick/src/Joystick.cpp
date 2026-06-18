@@ -8,14 +8,14 @@ void Joystick::init_joystick() {
 void Joystick::update_joystick(int &outX, int &outY) {
 
 
-    int x = analogRead(joyXPin) - JoystickConfig::CENTER;
-    int y = analogRead(joyYPin) - JoystickConfig::CENTER;
+    int x = analogRead(joyXPin);
+    int y = analogRead(joyYPin);
 
-    if (abs(x) < JoystickConfig::DEADZONE) x = 0;
-    if (abs(y) < JoystickConfig::DEADZONE) y = 0;
+    if (abs(x - JoystickConfig::JOY_CENTER) < JoystickConfig::DEADZONE) x = 0;
+    if (abs(y - JoystickConfig::JOY_CENTER) < JoystickConfig::DEADZONE) y = 0;
 
-    outX = x;
-    outY = y;
+    outX = map(x, 0, 1024, JoystickConfig::JOY_MIN, JoystickConfig::JOY_MAX);
+    outY = map(y, 0, 1024, JoystickConfig::JOY_MIN, JoystickConfig::JOY_MAX);
 
     if (debug_enabled) {
         Serial.print("Joystick X=");

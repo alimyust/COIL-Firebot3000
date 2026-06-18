@@ -16,10 +16,11 @@ constexpr uint16_t SERVO_MAX_US = 2000;
 RF69_Comm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
 ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
 MotorDriver motor_driver(true);
+}
 
 void setup() {
     Serial.begin(115200);
-    while (!Serial) {}
+    // while (!Serial) {}
 
 
     if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
@@ -29,18 +30,21 @@ void setup() {
 
    
     protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
-
-    motor_driver.init_motor();
-    protocol.setThrottleCallback([](float duty) {
+    protocol.setThrottleCallback([](uint8_t duty) {
         motor_driver.setThrottle(duty);
     });
-    protocol.setSteeringCallback([](float duty) {
+    protocol.setSteeringCallback([](uint8_t duty) {
         motor_driver.setSteeringDuty(duty);
     });
+    motor_driver.init_motor();
 
     Serial.println("Robot radio started");
 }
 
+
+
+
 void loop() {
     protocol.process();
 }
+

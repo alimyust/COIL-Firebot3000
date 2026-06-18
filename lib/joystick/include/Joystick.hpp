@@ -6,8 +6,8 @@
 namespace JoystickConfig {
     static constexpr uint8_t JOY_MIN = 0;
     static constexpr uint8_t JOY_MAX = 255;
-    static constexpr uint8_t CENTER = 128;
-    static constexpr int DEADZONE = 10;
+    static constexpr uint8_t JOY_CENTER = 128;
+    static constexpr int DEADZONE = 0;
 };
 
 class Joystick {
