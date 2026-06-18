@@ -43,11 +43,6 @@ void setup() {
         return;
     }
 
-    // throttleServo.attach(9);
-    // steeringServo.attach(11);
-    // throttleServo.writeMicroseconds(SERVO_MIN_US);
-    // steeringServo.writeMicroseconds(SERVO_MIN_US);
-
     pwm.begin(60);
     pwm.setDutyCycle1(0);
     pwm.setDutyCycle2(0);

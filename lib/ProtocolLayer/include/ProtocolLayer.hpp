@@ -6,6 +6,30 @@
 // A class to handle all tx/rx radio comms, separating robot
 // operation logic from communication layer.
 
+//defined packet structures
+
+struct motor_packet{
+    uint8_t throttle_duty;
+    uint8_t steering_duty;
+};
+
+//PM, RH&T, VOC, NOx, CO2/HCHO
+struct sen66_packet{
+    float pm1_0;
+    float pm2_5;
+    float pm10;
+    float rh;
+    float temp;
+    float voc;
+    float nox;
+    float co2_hcho;
+};
+
+struct telemetry_packet{
+    float battery_level;
+    float uptime;
+};
+
 class ProtocolLayer {
 public:
     ProtocolLayer(RF69_Comm &comm, uint8_t remoteNodeId = 1);
@@ -14,8 +38,6 @@ public:
 
     // outgoing commands
 
-    bool sendMotorSpeed(uint8_t speed);
-    bool sendSteeringAngle(uint8_t angle);
     bool sendThrottle(uint8_t duty);
     bool sendSteering(uint8_t duty);
     bool sendBatteryLevel(float level);
@@ -24,8 +46,6 @@ public:
     void setRemoteNodeId(uint8_t remoteNodeId);
 
     // callbacks to RobotHandler
-    void setMotorCallback(void (*cb)(uint8_t));
-    void setSteeringCallback(void (*cb)(uint8_t));
     void setThrottleCallback(void (*cb)(uint8_t));
     void setSteeringDutyCallback(void (*cb)(uint8_t));
 
