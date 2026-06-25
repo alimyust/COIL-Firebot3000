@@ -23,20 +23,20 @@ void setup() {
     // while (!Serial) {}
 
 
-    if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
-        Serial.println("Robot radio init failed");
-        return;
-    }
+    // if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
+    //     Serial.println("Robot radio init failed");
+    //     return;
+    // }
 
    
-    protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
-    protocol.setThrottleCallback([](uint8_t duty) {
-        motor_driver.setThrottle(duty);
-    });
-    protocol.setSteeringCallback([](uint8_t duty) {
-        motor_driver.setSteeringDuty(duty);
-    });
-    motor_driver.init_motor();
+    // protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
+    // protocol.setThrottleCallback([](uint8_t duty) {
+    //     motor_driver.setThrottle(duty);
+    // });
+    // protocol.setSteeringCallback([](uint8_t duty) {
+    //     motor_driver.setSteeringDuty(duty);
+    // });
+    // motor_driver.init_motor();
 
     Serial.println("Robot radio started");
 }
@@ -45,6 +45,6 @@ void setup() {
 
 
 void loop() {
-    protocol.process();
+    // protocol.process();
 }
 
