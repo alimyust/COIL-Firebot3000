@@ -1,6 +1,11 @@
 #include "Joystick.hpp"
 #include "ProtocolLayer.hpp"
 #include "Arduino.h"
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SH110X.h>
+
+Adafruit_SH1107 display(64, 128, &Wire, -1); // OLED
 
 namespace {
 constexpr uint8_t CONTROLLER_NODE_ID = 10;
@@ -30,6 +35,11 @@ void sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
 void setup() {
     Serial.begin(115200);
     while (!Serial) {}
+    Wire.begin();
+    display.begin(0x3C, true);
+    display.setRotation(1);
+    display.clearDisplay();
+    display.display();
     robot_joy.init_joystick();
 
     if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
@@ -37,6 +47,24 @@ void setup() {
         return;
     }
     protocol.setRemoteNodeId(ROBOT_NODE_ID);
+    // Sensor display callback
+     protocol.setSensorCallback([](const sen66_packet& data) {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(SH110X_WHITE);
+        display.setCursor(0, 0);
+
+        display.print("Temp: "); display.print(data.temp, 1); display.println("C");
+        display.print("RH:   "); display.print(data.rh, 1);  display.println("%");
+        display.print("VOC:  "); display.println(data.voc, 1);
+        display.print("NOx:  "); display.println(data.nox, 1);
+        display.print("CO2:  "); display.print((int)data.co2_hcho); display.println("ppm");
+        display.print("PM2.5:"); display.print(data.pm2_5, 1); display.println("ug/m3");
+
+        display.display();
+    });
+
+
     Serial.println("Controller radio started");
 }
 

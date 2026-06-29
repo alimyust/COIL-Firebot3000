@@ -41,6 +41,10 @@ bool ProtocolLayer::sendHeartbeat() {
     return _comm.send(_remote_node_id, HEARTBEAT, "HB");
 }
 
+bool ProtocolLayer::sendSensorData(const sen66_packet &data) {
+    return _comm.send(_remote_node_id, CommandID::SENSOR_DATA, reinterpret_cast<const char*>(&data));
+}
+
 
 void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
     _throttle_cb = cb;
@@ -48,6 +52,10 @@ void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
 
 void ProtocolLayer::setSteeringCallback(void (*cb)(uint8_t)) {
     _steering_cb = cb;
+}
+
+void ProtocolLayer::setSensorCallback(void (*cb)(const sen66_packet&)) {
+    _sensor_cb = cb;
 }
 
 void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
@@ -68,6 +76,12 @@ void ProtocolLayer::handlePacket(RF69_Packet &packet) {
             if (_throttle_cb) {
                 uint8_t duty = atof(packet.payload);
                 _throttle_cb(duty);
+            }
+        case SENSOR_DATA:
+            if (_sensor_cb) {
+                sen66_packet data;
+                memcpy(&data, packet.payload, sizeof(sen66_packet));
+                _sensor_cb(data);
             }
             break;
         default:

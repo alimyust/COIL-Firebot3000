@@ -42,12 +42,14 @@ public:
     bool sendSteering(uint8_t duty);
     bool sendBatteryLevel(float level);
     bool sendHeartbeat();
+    bool sendSensorData(const sen66_packet &data);
 
     void setRemoteNodeId(uint8_t remoteNodeId);
 
     // callback to link to motor control logic
     void setThrottleCallback(void (*cb)(uint8_t));
     void setSteeringCallback(void (*cb)(uint8_t));
+    void setSensorCallback(void (*cb)(const sen66_packet&));
 
     enum CommandID : uint8_t {
         MOTOR_SPEED = 0x01,
@@ -55,7 +57,8 @@ public:
         BATTERY     = 0x03,
         HEARTBEAT   = 0x04,
         THROTTLE    = 0x05,
-        STEERING_DUTY = 0x06
+        STEERING_DUTY = 0x06,
+        SENSOR_DATA   = 0x07  
     };
 
 private:
@@ -68,4 +71,5 @@ private:
     uint8_t _remote_node_id;
     void (*_steering_cb)(uint8_t);
     void (*_throttle_cb)(uint8_t);
+    void (*_sensor_cb)(const sen66_packet&);
 };

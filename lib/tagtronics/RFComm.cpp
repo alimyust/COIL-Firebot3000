@@ -51,7 +51,7 @@ bool RF69_Comm::begin(const uint8_t* sync_words, const char* encryption_key) {
     return true;
 }
 
-bool RF69_Comm::send(uint8_t receiver_id, uint8_t command, const char* message) {
+bool RF69_Comm::send(uint8_t receiver_id, uint8_t command, const char* message, uint8_t len) {
     // Create packet
     RF69_Packet packet;
     packet.sender_id = _node_id;
@@ -59,8 +59,14 @@ bool RF69_Comm::send(uint8_t receiver_id, uint8_t command, const char* message) 
     packet.command = command;
     
     // Copy message safely
-    strncpy(packet.payload, message, sizeof(packet.payload) - 1);
-    packet.payload[sizeof(packet.payload) - 1] = '\0';
+    if (len > 0) {
+        // Binary data path — use memcpy, not strncpy
+        memcpy(packet.payload, message, min(len, sizeof(packet.payload)));
+    } else {
+        // String path — existing behavior
+        strncpy(packet.payload, message, sizeof(packet.payload) - 1);
+        packet.payload[sizeof(packet.payload) - 1] = '\0';
+    }
     
     // Send with retries and random backoff
     for (int i = 0; i < 3; i++) {
