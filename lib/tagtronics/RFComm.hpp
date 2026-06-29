@@ -22,7 +22,7 @@ public:
     bool begin(const uint8_t* sync_words = nullptr, 
                const char* encryption_key = nullptr);
     
-    bool send(uint8_t receiver_id, uint8_t command, const char* message);
+    bool send(uint8_t receiver_id, uint8_t command, const char* message, uint8_t len =0);
     void update();
     void set_receive_handler(void (*handler)(RF69_Packet &packet));
     
