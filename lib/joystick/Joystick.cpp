@@ -1,4 +1,5 @@
 #include "Joystick.hpp"
+#include "DebugLog.hpp"
 
 void Joystick::init_joystick() {
     pinMode(joyXPin, INPUT);
@@ -18,9 +19,7 @@ void Joystick::update_joystick(int &outX, int &outY) {
     outY = map(y, 0, 1024, JoystickConfig::JOY_MIN, JoystickConfig::JOY_MAX);
 
     if (debug_enabled) {
-        Serial.print("Joystick X=");
-        Serial.print(outX);
-        Serial.print(" Y=");
-        Serial.println(outY);
+        DebugLog::appendField("joyX", outX);
+        DebugLog::appendField("joyY", outY);
     }
 }

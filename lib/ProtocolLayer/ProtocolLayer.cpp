@@ -1,22 +1,32 @@
 
 
 #include "ProtocolLayer.hpp"
+#include <stdlib.h>
 #include <string.h>
 
 ProtocolLayer *ProtocolLayer::s_instance = nullptr;
 
-ProtocolLayer::ProtocolLayer(RF69_Comm &comm, uint8_t remoteNodeId)
-    : _comm(comm), _remote_node_id(remoteNodeId), _steering_cb(nullptr), _throttle_cb(nullptr) {
+ProtocolLayer::ProtocolLayer(EventRadioComm &comm, uint8_t remoteNodeId)
+    : _comm(comm), _remote_node_id(remoteNodeId), _handler(nullptr),
+      _steering_cb(nullptr), _throttle_cb(nullptr) {
     s_instance = this;
-    _comm.set_receive_handler(&ProtocolLayer::receiveCallback);
 }
 
 void ProtocolLayer::process() {
     _comm.update();
+
+    RadioEvent event;
+    while (_comm.pollEvent(event)) {
+        handleEvent(event);
+    }
 }
 
 void ProtocolLayer::setRemoteNodeId(uint8_t remoteNodeId) {
     _remote_node_id = remoteNodeId;
+}
+
+void ProtocolLayer::setHandler(ProtocolHandler *handler) {
+    _handler = handler;
 }
 
 bool ProtocolLayer::sendThrottle(uint8_t duty) {
@@ -41,7 +51,6 @@ bool ProtocolLayer::sendHeartbeat() {
     return _comm.send(_remote_node_id, HEARTBEAT, "HB");
 }
 
-
 void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
     _throttle_cb = cb;
 }
@@ -56,18 +65,49 @@ void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
     }
 }
 
-void ProtocolLayer::handlePacket(RF69_Packet &packet) {
+void ProtocolLayer::handleEvent(const RadioEvent &event) {
+    switch (event.type) {
+        case RadioEventType::PacketReceived:
+            handlePacket(event.packet);
+            break;
+        case RadioEventType::TelemetryTick:
+            if (_handler) {
+                _handler->onHeartbeat();
+            }
+            sendHeartbeat();
+            break;
+        default:
+            break;
+    }
+}
+
+void ProtocolLayer::handlePacket(const RF69_Packet &packet) {
+    if (_handler) {
+        _handler->onMessage(packet.payload);
+    }
+
     switch (packet.command) {
-        case STEERING_DUTY:
-            if (_steering_cb) {
-                uint8_t duty = atof(packet.payload);
+        case STEERING_DUTY: {
+            uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
+            if (_handler) {
+                _handler->onSteering(duty);
+            } else if (_steering_cb) {
                 _steering_cb(duty);
             }
             break;
-        case THROTTLE:
-            if (_throttle_cb) {
-                uint8_t duty = atof(packet.payload);
+        }
+        case THROTTLE: {
+            uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
+            if (_handler) {
+                _handler->onThrottle(duty);
+            } else if (_throttle_cb) {
                 _throttle_cb(duty);
+            }
+            break;
+        }
+        case BATTERY:
+            if (_handler) {
+                _handler->onBatteryLevel(atof(packet.payload));
             }
             break;
         default:
