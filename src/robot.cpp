@@ -6,6 +6,7 @@
 #include <Servo.h>
 #include "Arduino.h"
 #include "MotorDriver.h"
+#include "DebugLog.hpp"
 
 namespace {
 constexpr uint8_t ROBOT_NODE_ID = 20;
@@ -50,5 +51,6 @@ void loop() {
 
     protocol.process();
     robot_handler.update();
+    DebugLog::flush();
 }
 

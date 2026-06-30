@@ -38,6 +38,7 @@ public:
         virtual void onThrottle(uint8_t duty) {}
         virtual void onSteering(uint8_t duty) {}
         virtual void onBatteryLevel(float level) {}
+        virtual void onMessage(const char *message) {}
         virtual void onHeartbeat() {}
     };
 

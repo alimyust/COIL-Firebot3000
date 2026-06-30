@@ -82,6 +82,10 @@ void ProtocolLayer::handleEvent(const RadioEvent &event) {
 }
 
 void ProtocolLayer::handlePacket(const RF69_Packet &packet) {
+    if (_handler) {
+        _handler->onMessage(packet.payload);
+    }
+
     switch (packet.command) {
         case STEERING_DUTY: {
             uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));

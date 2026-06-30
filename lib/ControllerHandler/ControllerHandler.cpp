@@ -1,5 +1,6 @@
 #include "ControllerHandler.hpp"
 #include "Arduino.h"
+#include "DebugLog.hpp"
 
 namespace {
 constexpr unsigned long SEND_INTERVAL_MS = 20;
@@ -28,6 +29,11 @@ void ControllerHandler::update() {
         _lastThrottleDuty = throttleDuty;
         _lastSendTime = now;
     }
+
+    if (_debug) {
+        DebugLog::appendField("ctrlT", _lastThrottleDuty);
+        DebugLog::appendField("ctrlS", _lastSteeringDuty);
+    }
 }
 
 void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
@@ -37,16 +43,12 @@ void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steering
 
 void ControllerHandler::onBatteryLevel(float level) {
     if (_debug) {
-        Serial.print("[controller] battery level = ");
-        Serial.println(level);
+        DebugLog::appendField("bat", level);
     }
 }
 
 void ControllerHandler::onHeartbeat() {
-    const unsigned long now = millis();
     if (_debug) {
-        Serial.print("[controller] heartbeat received @ ");
-        Serial.print(now);
-        Serial.println(" ms");
+        DebugLog::appendField("ctrlHB", millis());
     }
 }

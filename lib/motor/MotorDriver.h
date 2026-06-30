@@ -1,9 +1,9 @@
 #pragma once
 
 #include "ProtocolLayer.hpp"
-#include "DualHWPwm.hpp"
+#include "QuadHWPwm.hpp"
 #include "Joystick.hpp"
-
+#include "DebugLog.hpp"
 
 // HRW values measured from the cars original controller
 namespace MotorConfig {
@@ -21,13 +21,15 @@ class MotorDriver {
 public:
     MotorDriver(bool debug = false)
         : 
-        _pwm(9, 5),
+        _pwm(9, 5, 6, 7), // 9 throttle, 5 steering, 6 servo1, 7 servo2 (I think?)
         _debug(debug) {}
     
     void init_motor(){
-        _pwm.begin(60);
+        _pwm.begin(60, 50); // 60Hz for motors, 50Hz for servos
         _pwm.setDutyCycle1(0);
         _pwm.setDutyCycle2(0);
+        _pwm.setDutyCycle3(0);
+        _pwm.setDutyCycle4(0);
     }
 
     void setThrottle(uint8_t duty) { // input duty is 0-255 from joystick
@@ -41,13 +43,6 @@ public:
         );
 
         _pwm.setDutyCycle1(map_duty);//output is mapped to 7-11 for throttle control with float precision
-
-        if (_debug) {
-            Serial.print("Set throttle duty: ");
-            Serial.print(duty);
-            Serial.print(" mapped to ");
-            Serial.println(map_duty);
-        }
     }
 
     void setSteeringDuty(uint8_t duty) {
@@ -61,17 +56,11 @@ public:
     );
              
         _pwm.setDutyCycle2(map_duty);
-        if (_debug) {
-            Serial.print("Set steering duty: ");
-            Serial.print(duty);
-            Serial.print(" mapped to ");
-            Serial.println(map_duty);
-        }
     }
 
 
 private:
-    DualHardwarePWM _pwm;
+    QuadHardwarePWM _pwm;
     bool _debug;
 
     static float mapAroundNeutral(uint8_t value,
