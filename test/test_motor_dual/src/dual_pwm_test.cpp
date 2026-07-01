@@ -54,18 +54,13 @@ void loop() {
     static int step = 10;
 
     pwm.setDutyCycle1(duty);
-    pwm.setDutyCycle2(100 - duty);
-
+    pwm.setDutyCycle2(duty);
     duty += step;
 
-    if (duty >= 100) {
-        duty = 100;
-        step = -10;
+    if (duty >= 100 || duty <= 0) {
+        step = -step;
     }
-    else if (duty <= 0) {
-        duty = 0;
-        step = 10;
-    }
-
-    delay(250);
+    Serial.println("Duty cycle: " + String(duty) + "%");
+    
+    delay(100);
 }

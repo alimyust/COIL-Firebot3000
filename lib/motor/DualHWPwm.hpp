@@ -8,8 +8,8 @@ public:
     DualHardwarePWM(uint8_t pin1 = 9, uint8_t pin2 = 5);
     
     void begin(uint32_t frequency = 60);
-    void setDutyCycle1(uint8_t percent);
-    void setDutyCycle2(uint8_t percent);
+    void setDutyCycle1(float percent);
+    void setDutyCycle2(float percent);
 
 private:
     uint8_t _pin1, _pin2;
@@ -18,7 +18,7 @@ private:
     Tcc* _timer2; 
     
     void configureTimer(Tcc* timer, uint8_t gclk_id);
-    void setDutyCycle(Tcc* timer, uint8_t cc_channel, uint8_t percent);
+    void setDutyCycle(Tcc* timer, uint8_t cc_channel, float percent);
 };
 
 #endif

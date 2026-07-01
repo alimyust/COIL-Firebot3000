@@ -60,11 +60,12 @@ void DualHardwarePWM::configureTimer(Tcc* timer, uint8_t gclk_id) {
     while (timer->SYNCBUSY.bit.ENABLE);
 }
 
-void DualHardwarePWM::setDutyCycle(Tcc* timer, uint8_t cc_channel, uint8_t percent) {
+void DualHardwarePWM::setDutyCycle(Tcc* timer, uint8_t cc_channel, float percent) {
     if (!timer) return;
     
     const uint32_t per = timer->PER.reg;
-    timer->CC[cc_channel].reg = (per * constrain(percent, 0, 100)) / 100;
+    float clamped = constrain(percent, 0.0f, 100.0f);
+    timer->CC[cc_channel].reg = (uint32_t)((per * clamped) / 100.0f);
     
     // Wait for CC channel sync
     switch (cc_channel) {
@@ -73,10 +74,10 @@ void DualHardwarePWM::setDutyCycle(Tcc* timer, uint8_t cc_channel, uint8_t perce
     }
 }
 
-void DualHardwarePWM::setDutyCycle1(uint8_t percent) {
+void DualHardwarePWM::setDutyCycle1(float percent) {
     if (_timer1) setDutyCycle(_timer1, 1, percent);
 }
 
-void DualHardwarePWM::setDutyCycle2(uint8_t percent) {
+void DualHardwarePWM::setDutyCycle2(float percent) {
     if (_timer2) setDutyCycle(_timer2, 1, percent);
 }

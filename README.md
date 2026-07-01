@@ -2,45 +2,103 @@
 
 # COIL FireBot3000
 
-This project is organized around two standalone uploadable applications in `src/`:
+This project is built around two main PlatformIO upload targets in `src/`:
 
 - `src/controller.cpp` — controller-side entrypoint
 - `src/robot.cpp` — robot-side entrypoint
 
-Shared implementation code has been moved into `lib/project/`.
-Headers remain in `include/`.
+The rest of the project is organized into library modules under `lib/`, with each folder containing a specific subsystem.
 
 ## Build targets
 
 PlatformIO environments are configured in `platformio.ini`:
 
 - `env:controller` builds `src/controller.cpp`
-- `env:robot` bui
+- `env:robot` builds `src/robot.cpp`
 
-## How to use
-
-Any code written for specific hardware should be contained in `lib/project` as a .cpp file, and 
-'include/' as a .h file. The source file can then be included in either `controller.cpp` or `robot.cpp`, 
-which is where the lifecycle of the controller/robot will be present. 
-
-## Folder layout
+## Current project structure
 
 - `src/`
   - `controller.cpp`
   - `robot.cpp`
-- `include/`
-  - `Controller.hpp`
-  - `Display.hpp`
-  - `DisplaySensorProtocol.hpp`
-  - `ProtocolLayer.hpp`
-  - `Sensor.hpp`
-- `lib/project/`
-  - `Display.cpp`
-  - `ProtocolLayer.cpp`
-  - `Sensor.cpp`
+
+- `lib/`
+  - `radio/`
+    - `radio.cpp`
+    - `radio.h`
+  - `ProtocolLayer/`
+    - `ProtocolLayer.cpp`
+    - `ProtocolLayer.hpp`
+  - `ControllerHandler/`
+    - `ControllerHandler.cpp`
+    - `ControllerHandler.hpp`
+  - `RobotHandler/`
+    - `RobotHandler.cpp`
+    - `RobotHandler.hpp`
+  - `joystick/`
+    - `Joystick.cpp`
+    - `Joystick.hpp`
+  - `motor/`
+    - `DualHWPwm.cpp`
+    - `DualHWPwm.hpp`
+    - `QuadHWPwm.cpp`
+    - `QuadHWPwm.hpp`
+    - `MotorDriver.h`
+  - `DebugLog/`
+    - `DebugLog.cpp`
+    - `DebugLog.hpp`
+  - `tagtronics/`
+    - `RFComm.cpp`
+    - `RFComm.hpp`
+    - `TripleHWPwm.cpp`
+    - `TripleHWPwm.hpp`
+
+- `test/`
+  - unit and integration test support directories
+
+- root sketches and examples:
+  - `8pwm_receiver.ino`
+  - `Sensiron_receiver.ino`
+  - `Sensiron_Transmitter.ino`
+  - `Turret_empfangen_2.0/`
+  - `Turret_senden/`
+
+## How to use
+
+Hardware-specific implementations should be kept inside the appropriate `lib/` subsystem folder and exposed through the handler interfaces used by `controller.cpp` and `robot.cpp`.
+
+## Radio architecture
+
+The wireless stack is layered into three responsibilities:
+
+1. **Radio layer** (`lib/radio/`)
+   - Provides low-level RF69 packet send/receive functionality.
+   - Handles node addressing, frequency setup, encryption key configuration, and RSSI reporting.
+   - Contains two main classes:
+     - `RF69_Comm` — direct packet transmit/receive with callback support.
+     - `EventRadioComm` — event-driven wrapper that enqueues received packets and telemetry tick events for later processing.
+   - Purpose: keep the physical radio interface separate from message semantics.
+
+2. **Protocol layer** (`lib/ProtocolLayer/`)
+   - Builds on `EventRadioComm` to define protocol commands and message handling.
+   - Defines command IDs such as `THROTTLE`, `STEERING_DUTY`, `BATTERY`, and `HEARTBEAT`.
+   - Exposes outgoing methods like `sendThrottle()`, `sendSteering()`, `sendBatteryLevel()`, and `sendHeartbeat()`.
+   - Processes events from `EventRadioComm` and routes packets to a registered `ProtocolHandler`.
+   - Purpose: translate raw packets into application-level commands and telemetry, decoupling communication details from control logic.
+
+3. **Handlers**
+   - Implement `ProtocolLayer::ProtocolHandler` to receive protocol events and react accordingly.
+   - `ControllerHandler`:
+     - Runs on the controller side.
+     - Reads joystick inputs, sends throttle and steering commands to the robot.
+     - Receives battery level updates and heartbeat/timing events.
+   - `RobotHandler`:
+     - Runs on the robot side.
+     - Receives throttle and steering commands from the controller.
+     - Drives the motor subsystem and logs incoming messages.
+   - Purpose: contain application-specific behavior for each node, while the protocol layer stays generic.
 
 ## Notes
 
-- Only `controller.cpp` and `robot.cpp` are upload targets.
-- `lib/project/` contains support modules that are compiled as part of the project.
-- `include/README.md` describes the include folder and header conventions.
+- `src/controller.cpp` and `src/robot.cpp` are the only upload targets for the main system.
+- The radio/protocol/handler split is intentionally layered so the low-level RF transport, protocol semantics, and application actions remain separate.
