@@ -4,12 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-ProtocolLayer *ProtocolLayer::s_instance = nullptr;
-
 ProtocolLayer::ProtocolLayer(EventRadioComm &comm, uint8_t remoteNodeId)
-    : _comm(comm), _remote_node_id(remoteNodeId), _handler(nullptr),
-      _steering_cb(nullptr), _throttle_cb(nullptr) {
-    s_instance = this;
+    : _comm(comm), _remote_node_id(remoteNodeId), _handler(nullptr) {
 }
 
 void ProtocolLayer::process() {
@@ -29,40 +25,26 @@ void ProtocolLayer::setHandler(ProtocolHandler *handler) {
     _handler = handler;
 }
 
-bool ProtocolLayer::sendThrottle(uint8_t duty) {
+bool ProtocolLayer::enqueueThrottle(uint8_t duty) {
     char buf[4];
     sprintf(buf, "%d", duty);
     return _comm.send(_remote_node_id, THROTTLE, buf);
 }
 
-bool ProtocolLayer::sendSteering(uint8_t duty) {
+bool ProtocolLayer::enqueueSteering(uint8_t duty) {
     char buf[4];
     sprintf(buf, "%d", duty);
     return _comm.send(_remote_node_id, STEERING_DUTY, buf);
 }
 
-bool ProtocolLayer::sendBatteryLevel(float level) {
+bool ProtocolLayer::enqueueBatteryLevel(float level) {
     char buf[16];
     sprintf(buf, "%.2f", level);
     return _comm.send(_remote_node_id, BATTERY, buf);
 }
 
-bool ProtocolLayer::sendHeartbeat() {
+bool ProtocolLayer::enqueueHeartbeat() {
     return _comm.send(_remote_node_id, HEARTBEAT, "HB");
-}
-
-void ProtocolLayer::setThrottleCallback(void (*cb)(uint8_t)) {
-    _throttle_cb = cb;
-}
-
-void ProtocolLayer::setSteeringCallback(void (*cb)(uint8_t)) {
-    _steering_cb = cb;
-}
-
-void ProtocolLayer::receiveCallback(RF69_Packet &packet) {
-    if (s_instance) {
-        s_instance->handlePacket(packet);
-    }
 }
 
 void ProtocolLayer::handleEvent(const RadioEvent &event) {
@@ -74,7 +56,7 @@ void ProtocolLayer::handleEvent(const RadioEvent &event) {
             if (_handler) {
                 _handler->onHeartbeat();
             }
-            sendHeartbeat();
+            enqueueHeartbeat();
             break;
         default:
             break;
@@ -91,8 +73,6 @@ void ProtocolLayer::handlePacket(const RF69_Packet &packet) {
             uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
             if (_handler) {
                 _handler->onSteering(duty);
-            } else if (_steering_cb) {
-                _steering_cb(duty);
             }
             break;
         }
@@ -100,8 +80,6 @@ void ProtocolLayer::handlePacket(const RF69_Packet &packet) {
             uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
             if (_handler) {
                 _handler->onThrottle(duty);
-            } else if (_throttle_cb) {
-                _throttle_cb(duty);
             }
             break;
         }

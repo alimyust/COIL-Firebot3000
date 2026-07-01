@@ -18,7 +18,8 @@ struct RF69_Packet {
 enum class RadioEventType : uint8_t {
     None = 0,
     PacketReceived = 1,
-    TelemetryTick = 2
+    TelemetryTick = 2,
+    TransmitPacket = 3
 };
 
 struct RadioEvent {
@@ -75,6 +76,8 @@ private:
     static void receiveCallback(RF69_Packet &packet);
 
     void enqueueEvent(RadioEventType type, const RF69_Packet &packet);
+    void enqueueTransmit(const RF69_Packet &packet);
+    void processTransmitQueue();
     void handlePacket(const RF69_Packet &packet);
 
     RH_RF69 _radio;
@@ -90,6 +93,12 @@ private:
     uint8_t _queue_head;
     uint8_t _queue_tail;
     uint8_t _queue_count;
+
+    static constexpr uint8_t TX_QUEUE_SIZE = 8;
+    RF69_Packet _tx_queue[TX_QUEUE_SIZE];
+    uint8_t _tx_head;
+    uint8_t _tx_tail;
+    uint8_t _tx_count;
 };
 
 #endif

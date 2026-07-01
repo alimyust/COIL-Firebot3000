@@ -37,8 +37,8 @@ void ControllerHandler::update() {
 }
 
 void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
-    _protocol.sendThrottle(throttleDuty);
-    _protocol.sendSteering(steeringDuty);
+    _protocol.enqueueThrottle(throttleDuty);
+    _protocol.enqueueSteering(steeringDuty);
 }
 
 void ControllerHandler::onBatteryLevel(float level) {

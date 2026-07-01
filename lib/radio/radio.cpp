@@ -129,7 +129,8 @@ EventRadioComm::EventRadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
                                uint8_t int_pin, uint8_t rst_pin)
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
     _rst_pin(rst_pin), _debug_enabled(false), _test_mode(false), _last_rssi(0),
-    _queue_head(0), _queue_tail(0), _queue_count(0) {
+    _queue_head(0), _queue_tail(0), _queue_count(0),
+    _tx_head(0), _tx_tail(0), _tx_count(0) {
     s_instance = this;
 }
 
@@ -179,17 +180,13 @@ bool EventRadioComm::send(uint8_t receiver_id, uint8_t command, const char* mess
     strncpy(packet.payload, message, sizeof(packet.payload) - 1);
     packet.payload[sizeof(packet.payload) - 1] = '\0';
 
-    if (_radio.send((uint8_t*)&packet, sizeof(packet))) {
-        _radio.waitPacketSent(100);
-        _radio.setModeRx();
-        return true;
-    }
-
-    return false;
+    enqueueTransmit(packet);
+    return true;
 }
 
 void EventRadioComm::update() {
     if (_test_mode) {
+        processTransmitQueue();
         return;
     }
 
@@ -207,6 +204,8 @@ void EventRadioComm::update() {
             _radio.setModeRx();
         }
     }
+
+    processTransmitQueue();
 }
 
 bool EventRadioComm::hasPendingEvent() const {
@@ -262,6 +261,31 @@ void EventRadioComm::enqueueEvent(RadioEventType type, const RF69_Packet &packet
     _event_queue[_queue_tail] = event;
     _queue_tail = (_queue_tail + 1) % EVENT_QUEUE_SIZE;
     _queue_count++;
+}
+
+void EventRadioComm::enqueueTransmit(const RF69_Packet &packet) {
+    if (_tx_count >= TX_QUEUE_SIZE) {
+        return;
+    }
+
+    _tx_queue[_tx_tail] = packet;
+    _tx_tail = (_tx_tail + 1) % TX_QUEUE_SIZE;
+    _tx_count++;
+}
+
+void EventRadioComm::processTransmitQueue() {
+    while (_tx_count > 0) {
+        RF69_Packet packet = _tx_queue[_tx_head];
+        _tx_head = (_tx_head + 1) % TX_QUEUE_SIZE;
+        _tx_count--;
+
+        if (_radio.send((uint8_t*)&packet, sizeof(packet))) {
+            _radio.waitPacketSent(100);
+            _radio.setModeRx();
+        } else if (_debug_enabled) {
+            Serial.println("Queued radio packet send failed");
+        }
+    }
 }
 
 void EventRadioComm::handlePacket(const RF69_Packet &packet) {
