@@ -16,6 +16,24 @@ PlatformIO environments are configured in `platformio.ini`:
 - `env:controller` builds `src/controller.cpp`
 - `env:robot` builds `src/robot.cpp`
 
+## How To Build
+
+To upload the robot code (`src/robot.cpp`) to the robot side featherboard:
+
+- `pio run -e robot -t upload`
+
+To upload the controller code (`src/controller.cpp`) to the controller side featherboard:
+
+- `pio run -e controller -t upload`
+
+To run any of the tests, they must be in the `test/` folder with the prefix `test_[...]/`.
+
+- `pio test -e [robot/controller] -f [test_name]`
+
+For example, to run the quad_pwm test on the robot environment...
+
+- `pio test -e robot -f test_motor_quad`
+
 ## Current project structure
 
 - `src/`
