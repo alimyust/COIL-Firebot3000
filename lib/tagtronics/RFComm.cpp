@@ -61,7 +61,7 @@ bool RF69_Comm::send(uint8_t receiver_id, uint8_t command, const char* message, 
     // Copy message safely
     if (len > 0) {
         // Binary data path — use memcpy, not strncpy
-        memcpy(packet.payload, message, min(len, sizeof(packet.payload)));
+        memcpy(packet.payload, message, min((uint8_t)len, (uint8_t)sizeof(packet.payload)));
     } else {
         // String path — existing behavior
         strncpy(packet.payload, message, sizeof(packet.payload) - 1);

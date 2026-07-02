@@ -6,7 +6,7 @@
 ProtocolLayer *ProtocolLayer::s_instance = nullptr;
 
 ProtocolLayer::ProtocolLayer(RF69_Comm &comm, uint8_t remoteNodeId)
-    : _comm(comm), _remote_node_id(remoteNodeId), _steering_cb(nullptr), _throttle_cb(nullptr) {
+    : _comm(comm), _remote_node_id(remoteNodeId), _steering_cb(nullptr), _throttle_cb(nullptr), _sensor_cb(nullptr) {
     s_instance = this;
     _comm.set_receive_handler(&ProtocolLayer::receiveCallback);
 }
@@ -42,7 +42,7 @@ bool ProtocolLayer::sendHeartbeat() {
 }
 
 bool ProtocolLayer::sendSensorData(const sen66_packet &data) {
-    return _comm.send(_remote_node_id, CommandID::SENSOR_DATA, reinterpret_cast<const char*>(&data));
+    return _comm.send(_remote_node_id, CommandID::SENSOR_DATA, reinterpret_cast<const char*>(&data), sizeof(sen66_packet));
 }
 
 
@@ -68,15 +68,16 @@ void ProtocolLayer::handlePacket(RF69_Packet &packet) {
     switch (packet.command) {
         case STEERING_DUTY:
             if (_steering_cb) {
-                uint8_t duty = atof(packet.payload);
+                 uint8_t duty = (uint8_t)atoi(packet.payload); 
                 _steering_cb(duty);
             }
             break;
         case THROTTLE:
             if (_throttle_cb) {
-                uint8_t duty = atof(packet.payload);
+                 uint8_t duty = (uint8_t)atoi(packet.payload);
                 _throttle_cb(duty);
             }
+            break;
         case SENSOR_DATA:
             if (_sensor_cb) {
                 sen66_packet data;

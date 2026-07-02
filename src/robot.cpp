@@ -1,9 +1,9 @@
-
 #include <SensirionI2cSen66.h>
 #include "ProtocolLayer.hpp"
 #include "DualHWPwm.hpp"
 #include <Servo.h>
 #include "Arduino.h"
+#include <Wire.h>
 
 SensirionI2cSen66 sensor; // SEN66 
 unsigned long lastSensorRead = 0;
@@ -77,9 +77,8 @@ void setup() {
     protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
     
     protocol.setThrottleCallback(onThrottleCommand);
-    protocol.setSteeringDutyCallback(onSteeringCommand);
-    protocol.setMotorCallback(onMotorSpeed);
-    protocol.setSteeringCallback(onSteeringAngle);
+    protocol.setSteeringCallback(onSteeringCommand);
+   
     
     Wire.begin(); // SEN66 
     sensor.begin(Wire, SEN66_I2C_ADDR_6B);
@@ -89,9 +88,6 @@ void setup() {
     delay(1500);  // first measurement takes up to 1.5s to be ready
 
 }
-
-void loop() {
-    protocol.process();
 
     void loop() {
     protocol.process();  // radio RX — unchanged
@@ -131,4 +127,4 @@ void loop() {
         }
     }
 }
-}
+
