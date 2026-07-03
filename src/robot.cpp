@@ -1,7 +1,6 @@
 #include <SensirionI2cSen66.h>
 #include "ProtocolLayer.hpp"
 #include "DualHWPwm.hpp"
-#include <Servo.h>
 #include "Arduino.h"
 #include <Wire.h>
 
@@ -64,7 +63,7 @@ void setup() {
         Serial.println("Robot radio init failed");
         return;
     }
-
+    comm.enable_debug(true);
     // throttleServo.attach(9);
     // steeringServo.attach(11);
     // throttleServo.writeMicroseconds(SERVO_MIN_US);
@@ -89,7 +88,7 @@ void setup() {
 
 }
 
-    void loop() {
+void loop() {
     protocol.process();  // radio RX — unchanged
 
     if (millis() - lastSensorRead >= 1000) {

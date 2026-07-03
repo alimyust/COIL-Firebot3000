@@ -1,4 +1,5 @@
 
+#pragma once
 
 #include "ProtocolLayer.hpp"
 #include "DualHWPwm.hpp"
