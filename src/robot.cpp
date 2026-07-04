@@ -1,56 +1,103 @@
-
-
-#include "ProtocolLayer.hpp"
+#include <Arduino.h>
 #include "radio.h"
-#include "RobotHandler.hpp"
-#include <Servo.h>
-#include "Arduino.h"
-#include "MotorDriver.h"
-#include "DebugLog.hpp"
+#include "scheduler.h"
 
-namespace {
-constexpr uint8_t ROBOT_NODE_ID = 20;
-constexpr uint8_t CONTROLLER_NODE_ID = 10;
-constexpr float RF_FREQUENCY_MHZ = 868.0f;
-constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
-constexpr uint16_t SERVO_MIN_US = 1000;
-constexpr uint16_t SERVO_MAX_US = 2000;
-constexpr unsigned long TELEMETRY_INTERVAL_MS = 1000;
+// Hardware Pin Maps for Adafruit Feather M0 RFM69HCW
+#define RFM69_CS      8
+#define RFM69_INT     3
+#define RFM69_RST     4
+#define MOTOR_PWM_PIN 5
+#define SERVO_PIN     6
+#define TELEMETRY_PIN A0
 
-EventRadioComm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
-ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
-MotorDriver motor_driver(true);
-RobotHandler robot_handler(motor_driver);
-unsigned long lastTelemetryMs = 0;
+// Local Network Identity Address Settings
+const uint8_t NODE_ID = 1; 
+const float FREQUENCY = 434.0;
+const uint8_t SYNC_WORDS[2] = {0xDE, 0xAD};
+const char* ENCRYPTION_KEY = "sampleEncryptKey";
+
+// ============================================================================
+// STATE & PIPELINE INITIALIZATION
+// ============================================================================
+
+// The Shared Source of Truth (Zero-initialized global state container)
+VehicleTelemetry local_vehicle_state = {0, 0, 0};
+
+// Instantiate Architecture Layer 1 and Layer 2
+RadioComm radio(NODE_ID, FREQUENCY, RFM69_CS, RFM69_INT, RFM69_RST);
+EventScheduler scheduler(radio);
+
+// ============================================================================
+// STAGE 3 HANDLERS: PURE BUSINESS LOGIC & HARDWARE INTERFACING
+// ============================================================================
+
+/**
+ * @brief Processes incoming throttling commands. Blind to radio hardware.
+ */
+void handleThrottlePacket(const RadioComm::RF69_Packet& packet) {
+    int speed_value = atoi(packet.payload);
+    
+    // Boundary check input parameters safely
+    if (speed_value < 0) speed_value = 0;
+    if (speed_value > 255) speed_value = 255;
+    
+    analogWrite(MOTOR_PWM_PIN, speed_value);
 }
+
+/**
+ * @brief Processes incoming steering commands. Blind to radio hardware.
+ */
+void handleSteeringPacket(const RadioComm::RF69_Packet& packet) {
+    int angle_value = atoi(packet.payload);
+    
+    if (angle_value < 0) angle_value = 0;
+    if (angle_value > 180) angle_value = 180;
+    
+    analogWrite(SERVO_PIN, angle_value);
+}
+
+/**
+ * @brief Periodic Task: Reads physical analog sensor hardware pins.
+ * Does NOT look at, know about, or attempt to send via radio.
+ */
+void pollLocalSensors(VehicleTelemetry& state) {
+    // Read local hardware directly
+    int raw_analog = analogRead(TELEMETRY_PIN);
+    
+    // Commit values to the shared systemic memory model
+    state.sensor_reading = raw_analog;
+    state.last_update_time_ms = millis();
+}
+
+// ============================================================================
+// STANDARD ARDUINO ENTRY & EXECUTION CORES
+// ============================================================================
 
 void setup() {
     Serial.begin(115200);
+    
+    // Configure peripheral pin directions
+    pinMode(MOTOR_PWM_PIN, OUTPUT);
+    pinMode(SERVO_PIN, OUTPUT);
 
-    if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
-        Serial.println("Robot radio init failed");
-        return;
+    // Bootstrap Stage 1 Radio Drivers
+    if (!radio.begin(SYNC_WORDS, ENCRYPTION_KEY)) {
+        while (true); // Lock up locally if radio hardware is missing
     }
-    protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
-    protocol.setHandler(&robot_handler);
+    radio.enable_debug(true);
 
-    motor_driver.init_motor();
+    // Connect Stage 2 Event Types to Stage 3 Functional Blocks
+    scheduler.registerPacketHandler(EventType::MOTOR_THROTTLE, handleThrottlePacket);
+    scheduler.registerPacketHandler(EventType::MOTOR_STEERING, handleSteeringPacket);
 
-    Serial.println("Robot radio started");
+    // Schedule internal clock generator: Poll every 20ms at Medium Priority
+    scheduler.addPeriodicTask(EventType::SENSOR_POLL, EventPriority::PRIORITY_MEDIUM, 20, pollLocalSensors);
 }
-
-
-
 
 void loop() {
-    const unsigned long now = millis();
-    if (now - lastTelemetryMs >= TELEMETRY_INTERVAL_MS) {
-        lastTelemetryMs = now;
-        comm.queueTelemetryTick();
-    }
+    // Keep Stage 1 background driver processing routines feeding hardware arrays
+    radio.update();
 
-    protocol.process();
-    robot_handler.update();
-    DebugLog::flush();
+    // Keep Stage 2 processing transitions executing asynchronously
+    scheduler.update(local_vehicle_state);
 }
-

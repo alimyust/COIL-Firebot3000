@@ -1,136 +1,115 @@
-<<<<<<< HEAD
-
-
-#include <Arduino.h>
-
-#define QUEUE_SIZE 4 // Multi-level buffer structure replacing single double-buffering 
-
-=======
-#ifndef RFCOMM_HPP
-#define RFCOMM_HPP
+#ifndef RADIO_HPP
+#define RADIO_HPP
 
 #include <Arduino.h>
 #include <RH_RF69.h>
-#include <SPI.h>
 
-// Packet structure with addressing
-#pragma pack(push, 1)
->>>>>>> main
-struct RF69_Packet {
-    uint8_t sender_id;
-    uint8_t receiver_id;
-    uint8_t command;
-<<<<<<< HEAD
-    char payload[61]; // Adjust size to align with your payload specification
-=======
-    char payload[50];
-};
-#pragma pack(pop)
-
-enum class RadioEventType : uint8_t {
-    None = 0,
-    PacketReceived = 1,
-    TelemetryTick = 2,
-    TransmitPacket = 3
-};
-
-struct RadioEvent {
-    RadioEventType type;
-    RF69_Packet packet;
->>>>>>> main
-};
-
-class RF69_Comm {
+class RadioComm {
 public:
-<<<<<<< HEAD
-    // ... your existing constructor and methods ...
-    void processEvents(); // Call this instead of update()
+    // Ring buffer size for asynchronous packet containment
+    static const size_t RF69_RX_QUEUE_SIZE = 8;
+    
+    // Explicit maximum payload payload size safely fitting inside RadioHead's limits
+    static const size_t RF69_MAX_PAYLOAD_LEN = 50;
 
-    static void onRadioInterrupt();
+    // Structured raw over-the-air packet format
+    struct RF69_Packet {
+        uint8_t sender_id;
+        uint8_t receiver_id;
+        uint8_t command;
+        char payload[RF69_MAX_PAYLOAD_LEN];
+    };
 
-private:
-    // Thread-safe ring buffer queue allocations
-    static volatile bool s_packet_ready;
-    static volatile bool s_queue_overflow;
-    static volatile RF69_Packet s_packet_queue[QUEUE_SIZE];
-    static volatile int16_t s_rssi_queue[QUEUE_SIZE];
-    static volatile uint8_t s_queue_head;
-    static volatile uint8_t s_queue_tail;
-    
-    // ... your existing private variables ...
-};
-=======
-    RF69_Comm(uint8_t node_id, float frequency, uint8_t cs_pin = 8, 
-              uint8_t int_pin = 3, uint8_t rst_pin = 4);
-    
-    bool begin(const uint8_t* sync_words = nullptr, 
-               const char* encryption_key = nullptr);
-    
+    // Meta-wrapped packet stored inside the ring buffer for Stage 2 processing
+    struct RF69_ReceivedPacket {
+        RF69_Packet packet;
+        int16_t rssi;
+        unsigned long timestamp_ms;
+    };
+
+    /**
+     * @brief Construct a new Radio Comm object
+     * @param node_id Unique identification address for this specific node
+     * @param frequency Operating frequency in MHz (e.g., 434.0 or 915.0)
+     * @param cs_pin SPI chip select / slave select pin
+     * @param int_pin Hardware interrupt pin connected to DIO0
+     * @param rst_pin Hardware reset pin connected to radio reset
+     */
+    RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin, uint8_t int_pin, uint8_t rst_pin);
+
+    /**
+     * @brief Boots hardware interfaces and assigns default properties
+     * @param sync_words Pointer to a 2-byte network identifier array
+     * @param encryption_key Pointer to a 16-character AES-128 secret key string (null for unencrypted)
+     * @return true if initialization passes, false if hardware missing/unresponsive
+     */
+    bool begin(const uint8_t* sync_words = nullptr, const char* encryption_key = nullptr);
+
+    /**
+     * @brief Hands an outbound payload directly to hardware SPI registers non-blockingly
+     * @return true if the transmission started successfully, false if driver is busy or blocked
+     */
     bool send(uint8_t receiver_id, uint8_t command, const char* message);
+
+    /**
+     * @brief Essential execution tick. Evaluates background TX flags and drains hardware 
+     * FIFOs into the software ring buffer. Run continuously in the main loop.
+     */
     void update();
-    void set_receive_handler(void (*handler)(RF69_Packet &packet));
-    
+
+    /**
+     * @brief Checks if there are any unread packets waiting in the software buffer
+     */
+    bool available() const;
+
+    /**
+     * @brief Returns the total count of unread packets currently residing in the buffer
+     */
+    size_t queued_count() const;
+
+    /**
+     * @brief Pops the oldest unread packet out of the ring buffer ring array
+     * @param out Reference to a storage container where the packet data will copy to
+     * @return true if a packet was successfully retrieved, false if buffer is empty
+     */
+    bool receive(RF69_ReceivedPacket& out);
+
+    /**
+     * @brief Toggles local hardware status messaging via the Serial interface
+     */
     void enable_debug(bool enable);
-    int16_t get_last_rssi();
+
+    /**
+     * @brief Returns the absolute RSSI value calculated from the last received packet
+     */
+    int16_t get_last_rssi() const;
 
 private:
+    // Core hardware instance controller
     RH_RF69 _radio;
+
+    // Physical configurations
     uint8_t _node_id;
     float _frequency;
+    uint8_t _cs_pin;
+    uint8_t _int_pin;
     uint8_t _rst_pin;
-    void (*_receive_handler)(RF69_Packet &packet);
+
+    // State Tracking Flags
+    bool _tx_in_progress;
     bool _debug_enabled;
     int16_t _last_rssi;
+
+    // Software Circular Ring Buffer Mechanics
+    RF69_ReceivedPacket _rx_queue[RF69_RX_QUEUE_SIZE];
+    volatile size_t _rx_head;
+    volatile size_t _rx_tail;
+    volatile size_t _rx_count;
+
+    /**
+     * @brief Internal helper to push verified payloads cleanly into storage arrays
+     */
+    void push_received(const RF69_Packet& packet, int16_t rssi);
 };
 
-class EventRadioComm {
-public:
-    EventRadioComm(uint8_t node_id, float frequency, uint8_t cs_pin = 8,
-                   uint8_t int_pin = 3, uint8_t rst_pin = 4);
-
-    bool begin(const uint8_t* sync_words = nullptr,
-               const char* encryption_key = nullptr);
-
-    bool send(uint8_t receiver_id, uint8_t command, const char* message);
-    void update();
-    bool hasPendingEvent() const;
-    bool pollEvent(RadioEvent &out_event);
-    void queueTelemetryTick();
-    void injectPacket(const RF69_Packet &packet);
-    void setTestMode(bool enable);
-
-    void enable_debug(bool enable);
-    int16_t get_last_rssi();
-
-private:
-    static EventRadioComm* s_instance;
-    static void receiveCallback(RF69_Packet &packet);
-
-    void enqueueEvent(RadioEventType type, const RF69_Packet &packet);
-    void enqueueTransmit(const RF69_Packet &packet);
-    void processTransmitQueue();
-    void handlePacket(const RF69_Packet &packet);
-
-    RH_RF69 _radio;
-    uint8_t _node_id;
-    float _frequency;
-    uint8_t _rst_pin;
-    bool _debug_enabled;
-    bool _test_mode;
-    int16_t _last_rssi;
-
-    static constexpr uint8_t EVENT_QUEUE_SIZE = 8;
-    RadioEvent _event_queue[EVENT_QUEUE_SIZE];
-    uint8_t _queue_head;
-    uint8_t _queue_tail;
-    uint8_t _queue_count;
-
-    static constexpr uint8_t TX_QUEUE_SIZE = 8;
-    RF69_Packet _tx_queue[TX_QUEUE_SIZE];
-    uint8_t _tx_head;
-    uint8_t _tx_tail;
-    uint8_t _tx_count;
-};
-
-#endif
->>>>>>> main
+#endif // RADIO_HPP
