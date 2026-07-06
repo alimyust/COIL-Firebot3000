@@ -6,28 +6,45 @@
 
 extern char debugLineBuffer[];
 extern size_t debugLineLength;
-static constexpr size_t DEBUG_LINE_BUFFER_SIZE = 256;
+#ifndef DEBUG_LINE_BUFFER_SIZE
+#define DEBUG_LINE_BUFFER_SIZE 512
+#endif
+static constexpr size_t DEBUG_LINE_BUFFER_SIZE_VALUE = DEBUG_LINE_BUFFER_SIZE;
 
 namespace DebugLog {
+inline void flush();
+
 inline void reset() {
     debugLineBuffer[0] = '\0';
     debugLineLength = 0;
 }
 
 inline void appendText(const char *text) {
-    if (text == nullptr || debugLineLength >= DEBUG_LINE_BUFFER_SIZE - 1) {
+    if (text == nullptr) {
         return;
     }
 
-    const size_t textLength = strlen(text);
-    const size_t available = DEBUG_LINE_BUFFER_SIZE - 1 - debugLineLength;
-    if (textLength >= available) {
-        return;
-    }
+    const char *cursor = text;
+    while (*cursor != '\0') {
+        if (debugLineLength >= DEBUG_LINE_BUFFER_SIZE_VALUE - 1) {
+            flush();
+        }
 
-    memcpy(debugLineBuffer + debugLineLength, text, textLength);
-    debugLineLength += textLength;
-    debugLineBuffer[debugLineLength] = '\0';
+        size_t available = DEBUG_LINE_BUFFER_SIZE_VALUE - 1 - debugLineLength;
+        if (available == 0) {
+            continue;
+        }
+
+        size_t chunkLength = 0;
+        while (chunkLength < available && cursor[chunkLength] != '\0') {
+            ++chunkLength;
+        }
+
+        memcpy(debugLineBuffer + debugLineLength, cursor, chunkLength);
+        debugLineLength += chunkLength;
+        debugLineBuffer[debugLineLength] = '\0';
+        cursor += chunkLength;
+    }
 }
 
 inline void appendSeparator() {

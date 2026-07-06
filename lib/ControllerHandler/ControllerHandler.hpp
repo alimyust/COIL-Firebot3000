@@ -3,15 +3,16 @@
 
 #include <Arduino.h>
 #include "scheduler.h"
+#include "ProtocolCommands.hpp"
 
 class Joystick; // Forward declaration
 
 class ControllerHandler {
 public:
     // Controller target definitions (Assuming Robot is Node 1)
-    static const uint8_t TARGET_ROBOT_NODE = 1;
-    static const uint8_t CMD_THROTTLE = 0x01;
-    static const uint8_t CMD_STEERING = 0x02;
+    static const uint8_t TARGET_ROBOT_NODE = ProtocolCommands::NODE_ROBOT;
+    static const uint8_t CMD_THROTTLE = ProtocolCommands::CMD_THROTTLE;
+    static const uint8_t CMD_STEERING = ProtocolCommands::CMD_STEERING;
 
     ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug);
 

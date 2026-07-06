@@ -24,8 +24,8 @@ void ControllerHandler::handlePeriodicUpdate() {
     _lastThrottleDuty = throttleDuty;
 
     if (_debug) {
-        DebugLog::appendField("ctrlT", _lastThrottleDuty);
-        DebugLog::appendField("ctrlS", _lastSteeringDuty);
+        DebugLog::appendField("tx_Throt", _lastThrottleDuty);
+        DebugLog::appendField("tx_Steer", _lastSteeringDuty);
     }
 }
 
@@ -51,6 +51,6 @@ void ControllerHandler::onBatteryLevel(const RadioComm::RF69_Packet& packet) {
 
 void ControllerHandler::onHeartbeat(const RadioComm::RF69_Packet& packet) {
     if (_debug) {
-        DebugLog::appendField("ctrlHB", millis());
+        DebugLog::appendField("tx_HB", millis());
     }
 }

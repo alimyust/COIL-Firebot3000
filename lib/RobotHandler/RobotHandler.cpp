@@ -28,7 +28,17 @@ float RobotHandler::mapAroundNeutral(uint8_t value,
     }
 }
 
+void RobotHandler::updateDebugMessage(const char* payload) {
+    if (payload != nullptr) {
+        strncpy(_lastMessage, payload, sizeof(_lastMessage) - 1);
+        _lastMessage[sizeof(_lastMessage) - 1] = '\0';
+        _hasData = true;
+    }
+}
+
 void RobotHandler::processThrottle(const RadioComm::RF69_Packet& packet) {
+    updateDebugMessage(packet.payload);
+
     // Stage 3 converts raw incoming string payload back to programmatic type
     uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
 
@@ -45,6 +55,8 @@ void RobotHandler::processThrottle(const RadioComm::RF69_Packet& packet) {
 }
 
 void RobotHandler::processSteering(const RadioComm::RF69_Packet& packet) {
+    updateDebugMessage(packet.payload);
+
     // Stage 3 converts raw incoming string payload back to programmatic type
     uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
 
@@ -60,14 +72,6 @@ void RobotHandler::processSteering(const RadioComm::RF69_Packet& packet) {
     _hasData = true;
 }
 
-void RobotHandler::processMessage(const RadioComm::RF69_Packet& packet) {
-    if (packet.payload != nullptr) {
-        strncpy(_lastMessage, packet.payload, sizeof(_lastMessage) - 1);
-        _lastMessage[sizeof(_lastMessage) - 1] = '\0';
-        _hasData = true;
-    }
-}
-
 /**
  * @brief Replaces the old continuous update() loop. 
  * Executed at a fixed cadence configured via the Universal Scheduler.
@@ -77,14 +81,7 @@ void RobotHandler::handleDiagnostics() {
         return;
     }
 
-    if (_lastMessage[0] != '\0') {
-        DebugLog::appendField("msg", _lastMessage);
-    }
-
-    DebugLog::appendField("T", _lastThrottleDuty);
-    DebugLog::appendField("TM", _lastThrottleMap);
-    DebugLog::appendField("S", _lastSteeringDuty);
-    DebugLog::appendField("SM", _lastSteeringMap);
-
+    DebugLog::appendField("rx_Throt", _lastThrottleDuty);
+    DebugLog::appendField("rx_Steer", _lastSteeringDuty);
     DebugLog::flush();
 }

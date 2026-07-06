@@ -2,9 +2,7 @@
 #define ROBOT_HANDLER_HPP
 
 #include "scheduler.h"
-
-// Forward declaration of your specific motor driver class
-class MotorDriver; 
+#include "MotorDriver.h"
 
 class RobotHandler {
 public:
@@ -13,7 +11,6 @@ public:
     // Business logic processing routines called by the scheduler bridges
     void processThrottle(const RadioComm::RF69_Packet& packet);
     void processSteering(const RadioComm::RF69_Packet& packet);
-    void processMessage(const RadioComm::RF69_Packet& packet);
     void handleDiagnostics();
 
     // ========================================================================
@@ -27,10 +24,6 @@ public:
         static_cast<RobotHandler*>(context)->processSteering(packet);
     }
 
-    static void onMessageReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        static_cast<RobotHandler*>(context)->processMessage(packet);
-    }
-
     static void onDiagnosticTimerTick(void* context) {
         static_cast<RobotHandler*>(context)->handleDiagnostics();
     }
@@ -41,6 +34,8 @@ private:
                                   uint8_t in_min, uint8_t in_center, uint8_t in_max,
                                   float out_min, float out_neutral, float out_max);
 
+    void updateDebugMessage(const char* payload);
+
     EventScheduler &_scheduler;
     MotorDriver &_motor_driver;
     bool _debug;
@@ -50,6 +45,7 @@ private:
     float _lastThrottleMap;
     uint8_t _lastSteeringDuty;
     float _lastSteeringMap;
+
     char _lastMessage[32]; // Adjusted boundary size for string safety
     bool _hasData;
 };
