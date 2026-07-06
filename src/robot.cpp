@@ -1,56 +1,30 @@
-
-
-#include "ProtocolLayer.hpp"
+#include <Arduino.h>
 #include "radio.h"
+#include "scheduler.h"
 #include "RobotHandler.hpp"
-#include <Servo.h>
-#include "Arduino.h"
 #include "MotorDriver.h"
-#include "DebugLog.hpp"
+#include "ProtocolCommands.hpp"
 
-namespace {
-constexpr uint8_t ROBOT_NODE_ID = 20;
-constexpr uint8_t CONTROLLER_NODE_ID = 10;
-constexpr float RF_FREQUENCY_MHZ = 868.0f;
-constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
-constexpr uint16_t SERVO_MIN_US = 1000;
-constexpr uint16_t SERVO_MAX_US = 2000;
-constexpr unsigned long TELEMETRY_INTERVAL_MS = 1000;
+RadioComm radio(1, 434.0, 8, 3, 4); // Node 1 (Robot)
+EventScheduler scheduler(radio);
 
-EventRadioComm comm(ROBOT_NODE_ID, RF_FREQUENCY_MHZ);
-ProtocolLayer protocol(comm, CONTROLLER_NODE_ID);
-MotorDriver motor_driver(true);
-RobotHandler robot_handler(motor_driver);
-unsigned long lastTelemetryMs = 0;
-}
+MotorDriver motorDriver; 
+RobotHandler robotHandler(scheduler, motorDriver, true);
 
 void setup() {
     Serial.begin(115200);
+    radio.begin();
+    motorDriver.init_motor();
 
-    if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
-        Serial.println("Robot radio init failed");
-        return;
-    }
-    protocol.setRemoteNodeId(CONTROLLER_NODE_ID);
-    protocol.setHandler(&robot_handler);
+    // 1. Map Over-The-Air Commands to their respective parsing handlers
+    scheduler.registerPacketHandler(ProtocolCommands::CMD_THROTTLE, EventPriority::PRIORITY_HIGH, RobotHandler::onThrottleReceived, &robotHandler);
+    scheduler.registerPacketHandler(ProtocolCommands::CMD_STEERING, EventPriority::PRIORITY_HIGH, RobotHandler::onSteeringReceived, &robotHandler);
 
-    motor_driver.init_motor();
-
-    Serial.println("Robot radio started");
+    // 2. Schedule the diagnostic logging block to update cleanly every 50ms 
+    scheduler.addPeriodicTask(50, EventPriority::PRIORITY_LOW, RobotHandler::onDiagnosticTimerTick, &robotHandler);
 }
-
-
-
 
 void loop() {
-    const unsigned long now = millis();
-    if (now - lastTelemetryMs >= TELEMETRY_INTERVAL_MS) {
-        lastTelemetryMs = now;
-        comm.queueTelemetryTick();
-    }
-
-    protocol.process();
-    robot_handler.update();
-    DebugLog::flush();
+    radio.update();
+    scheduler.update();
 }
-

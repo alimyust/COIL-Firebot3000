@@ -1,7 +1,7 @@
 #ifndef RFCOMM_HPP
 #define RFCOMM_HPP
 
-#include <RH_RF69.h>
+#include <RH_RF95.h>
 #include <SPI.h>
 
 // Packet structure with addressing
@@ -30,12 +30,16 @@ public:
     int16_t get_last_rssi();
 
 private:
-    RH_RF69 _radio;
+    static void onRadioInterrupt();
+    static volatile bool s_packet_ready;
+
+    RH_RF95 _radio;
     uint8_t _node_id;
     float _frequency;
     uint8_t _rst_pin;
+    uint8_t _int_pin;
     void (*_receive_handler)(RF69_Packet &packet);
-    bool _debug_enabled;
+    bool _debug_enabled = true;
     int16_t _last_rssi;
 };
 

@@ -1,36 +1,28 @@
-#include "ControllerHandler.hpp"
+#include <Arduino.h>
 #include "radio.h"
-#include "Arduino.h"
-#include "DebugLog.hpp"
+#include "scheduler.h"
+#include "ControllerHandler.hpp"
+#include "Joystick.hpp"
+#include "ProtocolCommands.hpp"
 
-namespace {
-constexpr uint8_t CONTROLLER_NODE_ID = 10;
-constexpr uint8_t ROBOT_NODE_ID = 20;
-constexpr float RF_FREQUENCY_MHZ = 868.0f;
-constexpr char ENCRYPTION_KEY[] = "encryptionkey16";
+RadioComm radio(2, 434.0, 8, 3, 4); // Node 2 (Controller)
+EventScheduler scheduler(radio);
+Joystick joystick;
 
-EventRadioComm comm(CONTROLLER_NODE_ID, RF_FREQUENCY_MHZ);
-ProtocolLayer protocol(comm, ROBOT_NODE_ID);
-Joystick robot_joy(A3, A2, true);
-ControllerHandler controller_handler(protocol, robot_joy, true);
-}
+ControllerHandler handler(scheduler, joystick, true);
 
 void setup() {
     Serial.begin(115200);
-    robot_joy.init_joystick();
+    radio.begin();
 
-    if (!comm.begin(nullptr, ENCRYPTION_KEY)) {
-        Serial.println("Controller radio init failed");
-        return;
-    }
+    // 1. Assign 20ms execution loops to the handler without internal millis checks
+    scheduler.addPeriodicTask(100, EventPriority::PRIORITY_HIGH, ControllerHandler::onTimerTick, &handler);
 
-    protocol.setRemoteNodeId(ROBOT_NODE_ID);
-    protocol.setHandler(&controller_handler);
-    Serial.println("Controller radio started");
+    // 2. Map incoming payload commands (e.g., Battery = 0x04, Heartbeat = 0x05)
+    scheduler.registerPacketHandler(ProtocolCommands::CMD_HEARTBEAT, EventPriority::PRIORITY_LOW, ControllerHandler::onHeartbeatReceived, &handler);
 }
 
 void loop() {
-    protocol.process();
-    controller_handler.update();
-    DebugLog::flush();
+    radio.update();
+    scheduler.update();
 }
