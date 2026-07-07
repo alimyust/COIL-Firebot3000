@@ -1,6 +1,5 @@
 #include "ControllerHandler.hpp"
 #include "Joystick.hpp"
-#include "DebugLog.hpp"
 #include <stdlib.h>
 
 ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug)
@@ -16,8 +15,10 @@ void ControllerHandler::onJoystickTrigger() {
     sendControlValues(_lastThrottleDuty, _lastSteeringDuty);
 
     if (_debug) {
-        DebugLog::appendField("tx_Throt", _lastThrottleDuty);
-        DebugLog::appendField("tx_Steer", _lastSteeringDuty);
+        Serial.print("joyX:");
+        Serial.print(_lastSteeringDuty);
+        Serial.print(" joyY:");
+        Serial.println(_lastThrottleDuty);
     }
 }
 
@@ -32,9 +33,15 @@ void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steering
 }
 
 void ControllerHandler::onBatteryLevel(const ProtocolCommands::BatteryPayload& payload) {
-    if (_debug) DebugLog::appendField("bat", payload.level);
+    if (_debug) {
+        Serial.print("battery:");
+        Serial.println(payload.level);
+    }
 }
 
 void ControllerHandler::onHeartbeat(const ProtocolCommands::HeartbeatPayload&) {
-    if (_debug) DebugLog::appendField("tx_HB", millis());
+    if (_debug) {
+        Serial.print("heartbeat:");
+        Serial.println(millis());
+    }
 }

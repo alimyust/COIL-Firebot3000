@@ -8,6 +8,7 @@ class RadioComm {
 public:
     // Ring buffer size for asynchronous packet containment
     static const size_t RF69_RX_QUEUE_SIZE = 8;
+    static const size_t RF69_TX_QUEUE_SIZE = 4;
     
     // Explicit maximum payload payload size safely fitting inside RadioHead's limits
     static const size_t RF69_MAX_PAYLOAD_LEN = 50;
@@ -25,6 +26,12 @@ public:
         RF69_Packet packet;
         int16_t rssi;
         unsigned long timestamp_ms;
+    };
+
+    struct RF69_OutboundPacket {
+        uint8_t receiver_id;
+        uint8_t command;
+        char payload[RF69_MAX_PAYLOAD_LEN];
     };
 
     /**
@@ -97,7 +104,7 @@ private:
 
     // State Tracking Flags
     bool _tx_in_progress;
-    bool _debug_enabled;
+    bool _debug_enabled = true;
     int16_t _last_rssi;
 
     // Software Circular Ring Buffer Mechanics
@@ -106,10 +113,16 @@ private:
     volatile size_t _rx_tail;
     volatile size_t _rx_count;
 
+    RF69_OutboundPacket _tx_queue[RF69_TX_QUEUE_SIZE];
+    volatile size_t _tx_head;
+    volatile size_t _tx_tail;
+    volatile size_t _tx_count;
+
     /**
      * @brief Internal helper to push verified payloads cleanly into storage arrays
      */
     void push_received(const RF69_Packet& packet, int16_t rssi);
+    bool transmit_next_packet();
 };
 
 #endif // RADIO_HPP

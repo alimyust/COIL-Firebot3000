@@ -9,7 +9,7 @@ RadioComm radio(1, 434.0, 8, 3, 4); // Node 1 (Robot)
 EventScheduler scheduler(radio);
 
 MotorDriver motorDriver; 
-RobotHandler robotHandler(scheduler, motorDriver, true);
+RobotHandler robotHandler(scheduler, motorDriver, false);
 
 void setup() {
     Serial.begin(115200);

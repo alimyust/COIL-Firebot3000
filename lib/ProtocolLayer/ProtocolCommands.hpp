@@ -50,6 +50,7 @@ namespace ProtocolCommands {
     }
 
     inline bool deserializeSteeringPayload(const RadioComm::RF69_Packet& packet, SteeringPayload& payload) {
+        Serial.print(packet.payload[0]);
         if (packet.payload[0] == '\0') {
             return false;
         }

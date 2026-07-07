@@ -37,6 +37,10 @@ public:
      * Passes raw payloads down to Layer 1 safely and non-blockingly.
      */
     bool sendPacket(uint8_t target_node, uint8_t command_id, const char* payload) {
+        Serial.print("Command ID ");
+        Serial.print(command_id);
+        Serial.print(" and Payload: ");
+        Serial.println(payload);
         return _radio.send(target_node, command_id, payload);
     }
 
@@ -87,7 +91,8 @@ public:
                         ev.packet_callback = _packet_registry[i].callback;
                         ev.periodic_callback = nullptr;
                         ev.context = _packet_registry[i].context;
-                        
+                        Serial.print("command ID: " + String(rx_packet.packet.command));
+                        Serial.println("  Payload: " + String(rx_packet.packet.payload));
                         pushEvent(ev);
                         break;
                     }
@@ -139,7 +144,6 @@ private:
 
     void dispatchNextEvent() {
         if (_event_count == 0) return;
-
         SystemEvent active_event = _priority_queue[0];
         for (size_t i = 1; i < _event_count; i++) {
             _priority_queue[i - 1] = _priority_queue[i];

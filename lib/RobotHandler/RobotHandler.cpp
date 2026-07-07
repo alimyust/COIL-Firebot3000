@@ -1,5 +1,4 @@
 #include "RobotHandler.hpp"
-#include "DebugLog.hpp"
 #include "MotorDriver.h"
 
 #include <stdio.h>
@@ -80,7 +79,12 @@ void RobotHandler::handleDiagnostics() {
         return;
     }
 
-    DebugLog::appendField("rx_Throt", _lastThrottleDuty);
-    DebugLog::appendField("rx_Steer", _lastSteeringDuty);
-    DebugLog::flush();
+    Serial.print("throttle:");
+    Serial.print(_lastThrottleDuty);
+    Serial.print(" ");
+    Serial.print(_lastThrottleMap);
+    Serial.print(" steer:");
+    Serial.print(_lastSteeringDuty);
+    Serial.print(" ");
+    Serial.println(_lastSteeringMap);
 }

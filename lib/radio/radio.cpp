@@ -6,7 +6,8 @@ RadioComm::RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
     _rst_pin(rst_pin), _int_pin(int_pin), _tx_in_progress(false),
     _debug_enabled(false), _last_rssi(0),
-    _rx_head(0), _rx_tail(0), _rx_count(0) {}
+    _rx_head(0), _rx_tail(0), _rx_count(0),
+    _tx_head(0), _tx_tail(0), _tx_count(0) {}
 
 bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
     // 1. Hardware pin reset sequence for RFM69HCW
@@ -61,30 +62,25 @@ bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
 }
 
 bool RadioComm::send(uint8_t receiver_id, uint8_t command, const char* message) {
-    // If a previous packet is still actively transmitting over the air, 
-    // reject this request non-blockingly so Stage 2 can try again later.
-    if (_tx_in_progress) {
-        if (_debug_enabled) Serial.println("TX Rejected: Hardware Busy");
+    if (_tx_count >= RF69_TX_QUEUE_SIZE) {
+        if (_debug_enabled) Serial.println("TX Rejected: Queue Full");
         return false;
     }
 
-    // Structure raw packet payload
-    RF69_Packet packet;
-    packet.sender_id = _node_id;
+    RF69_OutboundPacket& packet = _tx_queue[_tx_tail];
     packet.receiver_id = receiver_id;
     packet.command = command;
-
     strncpy(packet.payload, message, sizeof(packet.payload) - 1);
     packet.payload[sizeof(packet.payload) - 1] = '\0';
 
-    // Hand raw data over to RadioHead to fill hardware SPI registers.
-    // This command starts the transmission instantly and returns immediately.
-    if (_radio.send((uint8_t*)&packet, sizeof(packet))) {
-        _tx_in_progress = true; // Lock driver into TX monitoring state
-        return true;
+    _tx_tail = (_tx_tail + 1) % RF69_TX_QUEUE_SIZE;
+    _tx_count++;
+
+    if (!_tx_in_progress) {
+        return transmit_next_packet();
     }
 
-    return false;
+    return true;
 }
 
 void RadioComm::update() {
@@ -95,6 +91,10 @@ void RadioComm::update() {
         _radio.setModeRx(); // Re-arm local receiver circuits to listen for packets
         _tx_in_progress = false;
         if (_debug_enabled) Serial.println("Asynchronous TX Complete. Reverted to RX.");
+    }
+
+    if (!_tx_in_progress && _tx_count > 0) {
+        transmit_next_packet();
     }
 
     // Stage B: Process Incoming FIFO Ring Buffering
@@ -128,6 +128,29 @@ void RadioComm::update() {
             }
         }
     }
+}
+
+bool RadioComm::transmit_next_packet() {
+    if (_tx_in_progress || _tx_count == 0) {
+        return false;
+    }
+
+    const RF69_OutboundPacket& queued_packet = _tx_queue[_tx_head];
+    RF69_Packet packet;
+    packet.sender_id = _node_id;
+    packet.receiver_id = queued_packet.receiver_id;
+    packet.command = queued_packet.command;
+    strncpy(packet.payload, queued_packet.payload, sizeof(packet.payload) - 1);
+    packet.payload[sizeof(packet.payload) - 1] = '\0';
+
+    if (_radio.send((uint8_t*)&packet, sizeof(packet))) {
+        _tx_in_progress = true;
+        _tx_head = (_tx_head + 1) % RF69_TX_QUEUE_SIZE;
+        _tx_count--;
+        return true;
+    }
+
+    return false;
 }
 
 void RadioComm::push_received(const RadioComm::RF69_Packet& packet, int16_t rssi) {
