@@ -1,8 +1,9 @@
 #include "RobotHandler.hpp"
 #include "DebugLog.hpp"
-#include "MotorDriver.h" 
-#include "DebugLog.hpp"
+#include "MotorDriver.h"
 
+#include <stdio.h>
+#include <string.h>
 
 RobotHandler::RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, bool debug)
     : _scheduler(scheduler),
@@ -36,15 +37,14 @@ void RobotHandler::updateDebugMessage(const char* payload) {
     }
 }
 
-void RobotHandler::processThrottle(const RadioComm::RF69_Packet& packet) {
-    updateDebugMessage(packet.payload);
+void RobotHandler::processThrottle(const ProtocolCommands::ThrottlePayload& payload) {
+    char debugBuffer[8];
+    itoa(payload.duty, debugBuffer, 10);
+    updateDebugMessage(debugBuffer);
 
-    // Stage 3 converts raw incoming string payload back to programmatic type
-    uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
-
-    _motor_driver.setThrottle(duty);
-    _lastThrottleDuty = duty;
-    _lastThrottleMap = mapAroundNeutral(duty,
+    _motor_driver.setThrottle(payload.duty);
+    _lastThrottleDuty = payload.duty;
+    _lastThrottleMap = mapAroundNeutral(payload.duty,
         JoystickConfig::JOY_MIN,
         JoystickConfig::JOY_CENTER,
         JoystickConfig::JOY_MAX,
@@ -54,15 +54,14 @@ void RobotHandler::processThrottle(const RadioComm::RF69_Packet& packet) {
     _hasData = true;
 }
 
-void RobotHandler::processSteering(const RadioComm::RF69_Packet& packet) {
-    updateDebugMessage(packet.payload);
+void RobotHandler::processSteering(const ProtocolCommands::SteeringPayload& payload) {
+    char debugBuffer[8];
+    itoa(payload.duty, debugBuffer, 10);
+    updateDebugMessage(debugBuffer);
 
-    // Stage 3 converts raw incoming string payload back to programmatic type
-    uint8_t duty = static_cast<uint8_t>(atoi(packet.payload));
-
-    _motor_driver.setSteeringDuty(duty);
-    _lastSteeringDuty = duty;
-    _lastSteeringMap = mapAroundNeutral(duty,
+    _motor_driver.setSteeringDuty(payload.duty);
+    _lastSteeringDuty = payload.duty;
+    _lastSteeringMap = mapAroundNeutral(payload.duty,
         JoystickConfig::JOY_MIN,
         JoystickConfig::JOY_CENTER,
         JoystickConfig::JOY_MAX,
@@ -73,7 +72,7 @@ void RobotHandler::processSteering(const RadioComm::RF69_Packet& packet) {
 }
 
 /**
- * @brief Replaces the old continuous update() loop. 
+ * @brief Replaces the old continuous update() loop.
  * Executed at a fixed cadence configured via the Universal Scheduler.
  */
 void RobotHandler::handleDiagnostics() {

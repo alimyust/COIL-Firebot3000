@@ -3,25 +3,32 @@
 
 #include "scheduler.h"
 #include "MotorDriver.h"
+#include "ProtocolCommands.hpp"
 
 class RobotHandler {
 public:
     RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, bool debug);
 
     // Business logic processing routines called by the scheduler bridges
-    void processThrottle(const RadioComm::RF69_Packet& packet);
-    void processSteering(const RadioComm::RF69_Packet& packet);
+    void processThrottle(const ProtocolCommands::ThrottlePayload& payload);
+    void processSteering(const ProtocolCommands::SteeringPayload& payload);
     void handleDiagnostics();
 
     // ========================================================================
     // UNIVERSAL SCHEDULER STATIC ROUTING BRIDGES
     // ========================================================================
     static void onThrottleReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        static_cast<RobotHandler*>(context)->processThrottle(packet);
+        ProtocolCommands::ThrottlePayload payload;
+        if (ProtocolCommands::deserializeThrottlePayload(packet, payload)) {
+            static_cast<RobotHandler*>(context)->processThrottle(payload);
+        }
     }
 
     static void onSteeringReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        static_cast<RobotHandler*>(context)->processSteering(packet);
+        ProtocolCommands::SteeringPayload payload;
+        if (ProtocolCommands::deserializeSteeringPayload(packet, payload)) {
+            static_cast<RobotHandler*>(context)->processSteering(payload);
+        }
     }
 
     static void onDiagnosticTimerTick(void* context) {

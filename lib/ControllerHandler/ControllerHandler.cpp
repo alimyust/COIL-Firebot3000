@@ -1,27 +1,19 @@
 #include "ControllerHandler.hpp"
 #include "Joystick.hpp"
 #include "DebugLog.hpp"
+#include <stdlib.h>
 
 ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug)
-    : _scheduler(scheduler),
-      _joystick(joystick),
-      _debug(debug),
-      _lastThrottleDuty(0),
-      _lastSteeringDuty(0) {}
+    : _scheduler(scheduler), _joystick(joystick), _debug(debug), _lastThrottleDuty(0), _lastSteeringDuty(0) {}
 
-void ControllerHandler::handlePeriodicUpdate() {
-    int x = 0;
-    int y = 0;
+void ControllerHandler::onJoystickTrigger() {
+    int x = 0, y = 0;
     _joystick.update_joystick(x, y);
 
-    const uint8_t steeringDuty = static_cast<uint8_t>(x);
-    const uint8_t throttleDuty = static_cast<uint8_t>(y);
+    _lastSteeringDuty = static_cast<uint8_t>(x);
+    _lastThrottleDuty = static_cast<uint8_t>(y);
 
-    // Transmit new values instantly (Cadence managed by the Universal Scheduler)
-    sendControlValues(throttleDuty, steeringDuty);
-    
-    _lastSteeringDuty = steeringDuty;
-    _lastThrottleDuty = throttleDuty;
+    sendControlValues(_lastThrottleDuty, _lastSteeringDuty);
 
     if (_debug) {
         DebugLog::appendField("tx_Throt", _lastThrottleDuty);
@@ -29,28 +21,20 @@ void ControllerHandler::handlePeriodicUpdate() {
     }
 }
 
+// OUTBOUND: itoa completely removes the need for separate serialize functions
 void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
-    char throttleBuf[4];
-    char steeringBuf[4];
-    
-    // Convert numerical values to character payloads cleanly
-    itoa(throttleDuty, throttleBuf, 10);
-    itoa(steeringDuty, steeringBuf, 10);
+    char tBuf[4], sBuf[4];
+    itoa(throttleDuty, tBuf, 10);
+    itoa(steeringDuty, sBuf, 10);
 
-    // Route out using the scheduler's pass-through gateway
-    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, throttleBuf);
-    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, steeringBuf);
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, tBuf);
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, sBuf);
 }
 
-void ControllerHandler::onBatteryLevel(const RadioComm::RF69_Packet& packet) {
-    if (_debug) {
-        float level = atof(packet.payload);
-        DebugLog::appendField("bat", level);
-    }
+void ControllerHandler::onBatteryLevel(const ProtocolCommands::BatteryPayload& payload) {
+    if (_debug) DebugLog::appendField("bat", payload.level);
 }
 
-void ControllerHandler::onHeartbeat(const RadioComm::RF69_Packet& packet) {
-    if (_debug) {
-        DebugLog::appendField("tx_HB", millis());
-    }
+void ControllerHandler::onHeartbeat(const ProtocolCommands::HeartbeatPayload&) {
+    if (_debug) DebugLog::appendField("tx_HB", millis());
 }

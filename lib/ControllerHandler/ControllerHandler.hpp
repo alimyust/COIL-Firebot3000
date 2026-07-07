@@ -20,25 +20,31 @@ public:
      * @brief Triggered at a fixed time slice by the scheduler.
      * Evaluates hardware pins and directly transmits dependencies.
      */
-    void handlePeriodicUpdate();
+    void onJoystickTrigger();
 
-    // Inbound Callback Targets called by the scheduler
-    void onBatteryLevel(const RadioComm::RF69_Packet& packet);
-    void onHeartbeat(const RadioComm::RF69_Packet& packet);
+    // Inbound callback targets called by the scheduler bridges
+    void onBatteryLevel(const ProtocolCommands::BatteryPayload& payload);
+    void onHeartbeat(const ProtocolCommands::HeartbeatPayload& payload);
 
     // ========================================================================
     // SCHEDULER INTERFACE ROUTING STATIC BRIDGES
     // ========================================================================
-    static void onTimerTick(void* context) {
-        static_cast<ControllerHandler*>(context)->handlePeriodicUpdate();
+    static void onJoystickUpdate(void* context) {
+        static_cast<ControllerHandler*>(context)->onJoystickTrigger();
     }
 
     static void onBatteryReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        static_cast<ControllerHandler*>(context)->onBatteryLevel(packet);
+        ProtocolCommands::BatteryPayload payload;
+        if (ProtocolCommands::deserializeBatteryPayload(packet, payload)) {
+            static_cast<ControllerHandler*>(context)->onBatteryLevel(payload);
+        }
     }
 
     static void onHeartbeatReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        static_cast<ControllerHandler*>(context)->onHeartbeat(packet);
+        ProtocolCommands::HeartbeatPayload payload;
+        if (ProtocolCommands::deserializeHeartbeatPayload(packet, payload)) {
+            static_cast<ControllerHandler*>(context)->onHeartbeat(payload);
+        }
     }
 
 private:

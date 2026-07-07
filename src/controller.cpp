@@ -15,10 +15,8 @@ void setup() {
     Serial.begin(115200);
     radio.begin();
 
-    // 1. Assign 20ms execution loops to the handler without internal millis checks
-    scheduler.addPeriodicTask(100, EventPriority::PRIORITY_HIGH, ControllerHandler::onTimerTick, &handler);
-
-    // 2. Map incoming payload commands (e.g., Battery = 0x04, Heartbeat = 0x05)
+    scheduler.addPeriodicTask(100, EventPriority::PRIORITY_HIGH, ControllerHandler::onJoystickUpdate, &handler);
+    scheduler.registerPacketHandler(ProtocolCommands::CMD_BATTERY, EventPriority::PRIORITY_LOW, ControllerHandler::onBatteryReceived, &handler);
     scheduler.registerPacketHandler(ProtocolCommands::CMD_HEARTBEAT, EventPriority::PRIORITY_LOW, ControllerHandler::onHeartbeatReceived, &handler);
 }
 
