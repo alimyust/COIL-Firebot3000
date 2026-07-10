@@ -24,9 +24,20 @@ void test_robot_payload_roundtrip(void) {
     TEST_ASSERT_EQUAL_UINT8(87, decoded.duty);
 }
 
+void test_generic_numeric_deserializer(void) {
+    RadioComm::RF69_Packet packet{};
+    uint8_t decoded = 0;
+    strncpy(packet.payload, "77", sizeof(packet.payload) - 1);
+    packet.payload[sizeof(packet.payload) - 1] = '\0';
+
+    TEST_ASSERT_TRUE(ProtocolCommands::deserializeNumericPayload(packet, decoded));
+    TEST_ASSERT_EQUAL_UINT8(77, decoded);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_controller_payload_roundtrip);
     RUN_TEST(test_robot_payload_roundtrip);
+    RUN_TEST(test_generic_numeric_deserializer);
     return UNITY_END();
 }

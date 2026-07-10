@@ -14,9 +14,6 @@ namespace ProtocolCommands {
     enum CommandId : uint8_t {
         CMD_THROTTLE = 0x01,
         CMD_STEERING = 0x02,
-        CMD_BATTERY = 0x03,
-        CMD_HEARTBEAT = 0x04,
-        CMD_MESSAGE = 0x05
     };
 
     struct ThrottlePayload {
@@ -27,57 +24,101 @@ namespace ProtocolCommands {
         uint8_t duty;
     };
 
-    struct BatteryPayload {
-        float level;
+    struct SensorPayload {
+        float pm1p0;
+        float pm2p5;
+        float pm4p0;
+        float pm10p0;
+        float humidity;
+        float temperature;
+        float vocIndex;
+        float noxIndex;
     };
 
-    struct HeartbeatPayload {
-    };
-
-    inline bool deserializeThrottlePayload(const RadioComm::RF69_Packet& packet, ThrottlePayload& payload) {
+    inline bool deserializeNumericPayload(const RadioComm::RF69_Packet& packet, uint8_t& value) {
         if (packet.payload[0] == '\0') {
             return false;
         }
 
         char* end = nullptr;
-        const unsigned long value = strtoul(packet.payload, &end, 10);
+        const unsigned long parsed = strtoul(packet.payload, &end, 10);
         if (end == packet.payload) {
             return false;
         }
 
-        payload.duty = static_cast<uint8_t>(value);
+        value = static_cast<uint8_t>(parsed);
         return true;
     }
 
-    inline bool deserializeSteeringPayload(const RadioComm::RF69_Packet& packet, SteeringPayload& payload) {
-        Serial.print(packet.payload[0]);
+    inline bool deserializeNumericPayload(const RadioComm::RF69_Packet& packet, float& value) {
         if (packet.payload[0] == '\0') {
             return false;
         }
 
         char* end = nullptr;
-        const unsigned long value = strtoul(packet.payload, &end, 10);
-        if (end == packet.payload) {
-            return false;
-        }
-
-        payload.duty = static_cast<uint8_t>(value);
-        return true;
-    }
-
-    inline bool deserializeBatteryPayload(const RadioComm::RF69_Packet& packet, BatteryPayload& payload) {
-        if (packet.payload[0] == '\0') {
-            return false;
-        }
-
-        char* end = nullptr;
-        payload.level = strtof(packet.payload, &end);
+        value = strtof(packet.payload, &end);
         return end != packet.payload;
     }
 
-    inline bool deserializeHeartbeatPayload(const RadioComm::RF69_Packet&, HeartbeatPayload&) {
+    inline bool deserializeThrottlePayload(const RadioComm::RF69_Packet& packet, ThrottlePayload& payload) {
+        return deserializeNumericPayload(packet, payload.duty);
+    }
+
+    inline bool deserializeSteeringPayload(const RadioComm::RF69_Packet& packet, SteeringPayload& payload) {
+        return deserializeNumericPayload(packet, payload.duty);
+    }
+
+    inline bool deserializeSensorPayload(const RadioComm::RF69_Packet& packet, SensorPayload& payload) {
+        if (!packet.payload) return false;
+
+        char buffer[128];
+        strncpy(buffer, packet.payload, sizeof(buffer) - 1);
+        buffer[sizeof(buffer) - 1] = '\0';
+
+        char* end = nullptr;
+        char* token = strtok(buffer, ",");
+        if (!token) return false;
+        payload.pm1p0 = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.pm2p5 = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.pm4p0 = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.pm10p0 = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.humidity = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.temperature = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.vocIndex = strtof(token, &end);
+        if (end == token) return false;
+
+        token = strtok(nullptr, ",");
+        if (!token) return false;
+        payload.noxIndex = strtof(token, &end);
+        if (end == token) return false;
+
         return true;
     }
+
 }
 
 #endif

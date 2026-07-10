@@ -30,17 +30,19 @@ public:
     static const size_t MAX_PERIODIC_TASKS = 4;
 
     EventScheduler(RadioComm& radio) 
-        : _radio(radio), _event_count(0), _task_count(0), _packet_handler_count(0) {}
+        : _radio(radio), _event_count(0), _task_count(0), _packet_handler_count(0), _debug_enabled(false) {}
 
     /**
      * @brief NEW: Replaces ProtocolLayer outbound queue mechanics.
      * Passes raw payloads down to Layer 1 safely and non-blockingly.
      */
     bool sendPacket(uint8_t target_node, uint8_t command_id, const char* payload) {
-        Serial.print("Command ID ");
-        Serial.print(command_id);
-        Serial.print(" and Payload: ");
-        Serial.println(payload);
+        if (_debug_enabled) {
+            Serial.print("Command ID ");
+            Serial.print(command_id);
+            Serial.print(" and Payload: ");
+            Serial.println(payload);
+        }
         return _radio.send(target_node, command_id, payload);
     }
 
@@ -91,8 +93,10 @@ public:
                         ev.packet_callback = _packet_registry[i].callback;
                         ev.periodic_callback = nullptr;
                         ev.context = _packet_registry[i].context;
-                        Serial.print("command ID: " + String(rx_packet.packet.command));
-                        Serial.println("  Payload: " + String(rx_packet.packet.payload));
+                        if (_debug_enabled) {
+                            Serial.print("command ID: " + String(rx_packet.packet.command));
+                            Serial.println("  Payload: " + String(rx_packet.packet.payload));
+                        }
                         pushEvent(ev);
                         break;
                     }
@@ -130,6 +134,8 @@ private:
     
     PacketHandlerMapping _packet_registry[MAX_PACKET_HANDLERS];
     size_t _packet_handler_count;
+
+    bool _debug_enabled = true;
 
     void pushEvent(const SystemEvent& ev) {
         if (_event_count >= MAX_EVENTS) return;

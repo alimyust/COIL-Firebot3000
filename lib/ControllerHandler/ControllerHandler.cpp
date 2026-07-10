@@ -2,8 +2,8 @@
 #include "Joystick.hpp"
 #include <stdlib.h>
 
-ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug)
-    : _scheduler(scheduler), _joystick(joystick), _debug(debug), _lastThrottleDuty(0), _lastSteeringDuty(0) {}
+ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug_enabled)
+    : _scheduler(scheduler), _joystick(joystick), _debug_enabled(debug_enabled), _lastThrottleDuty(0), _lastSteeringDuty(0) {}
 
 void ControllerHandler::onJoystickTrigger() {
     int x = 0, y = 0;
@@ -14,7 +14,7 @@ void ControllerHandler::onJoystickTrigger() {
 
     sendControlValues(_lastThrottleDuty, _lastSteeringDuty);
 
-    if (_debug) {
+    if (_debug_enabled) {
         Serial.print("joyX:");
         Serial.print(_lastSteeringDuty);
         Serial.print(" joyY:");
@@ -30,18 +30,4 @@ void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steering
 
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, tBuf);
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, sBuf);
-}
-
-void ControllerHandler::onBatteryLevel(const ProtocolCommands::BatteryPayload& payload) {
-    if (_debug) {
-        Serial.print("battery:");
-        Serial.println(payload.level);
-    }
-}
-
-void ControllerHandler::onHeartbeat(const ProtocolCommands::HeartbeatPayload&) {
-    if (_debug) {
-        Serial.print("heartbeat:");
-        Serial.println(millis());
-    }
 }

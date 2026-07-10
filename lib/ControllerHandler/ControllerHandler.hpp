@@ -14,7 +14,7 @@ public:
     static const uint8_t CMD_THROTTLE = ProtocolCommands::CMD_THROTTLE;
     static const uint8_t CMD_STEERING = ProtocolCommands::CMD_STEERING;
 
-    ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug);
+    ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug_enabled);
 
     /**
      * @brief Triggered at a fixed time slice by the scheduler.
@@ -22,9 +22,6 @@ public:
      */
     void onJoystickTrigger();
 
-    // Inbound callback targets called by the scheduler bridges
-    void onBatteryLevel(const ProtocolCommands::BatteryPayload& payload);
-    void onHeartbeat(const ProtocolCommands::HeartbeatPayload& payload);
 
     // ========================================================================
     // SCHEDULER INTERFACE ROUTING STATIC BRIDGES
@@ -33,26 +30,12 @@ public:
         static_cast<ControllerHandler*>(context)->onJoystickTrigger();
     }
 
-    static void onBatteryReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::BatteryPayload payload;
-        if (ProtocolCommands::deserializeBatteryPayload(packet, payload)) {
-            static_cast<ControllerHandler*>(context)->onBatteryLevel(payload);
-        }
-    }
-
-    static void onHeartbeatReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::HeartbeatPayload payload;
-        if (ProtocolCommands::deserializeHeartbeatPayload(packet, payload)) {
-            static_cast<ControllerHandler*>(context)->onHeartbeat(payload);
-        }
-    }
-
 private:
     void sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty);
 
     EventScheduler &_scheduler;
     Joystick &_joystick;
-    bool _debug;
+    bool _debug_enabled;
 
     uint8_t _lastThrottleDuty;
     uint8_t _lastSteeringDuty;
