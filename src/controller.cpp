@@ -6,10 +6,10 @@
 #include "ProtocolCommands.hpp"
 
 RadioComm radio(2, 434.0, 8, 3, 4); // Node 2 (Controller)
-EventScheduler scheduler(radio);
+EventScheduler scheduler(radio, true);
 Joystick joystick;
 
-ControllerHandler handler(scheduler, joystick, true);
+ControllerHandler handler(scheduler, joystick, false);
 
 void setup() {
 

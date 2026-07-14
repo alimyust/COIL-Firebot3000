@@ -24,10 +24,7 @@ void ControllerHandler::onJoystickTrigger() {
 
 // OUTBOUND: itoa completely removes the need for separate serialize functions
 void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty) {
-    char tBuf[4], sBuf[4];
-    itoa(throttleDuty, tBuf, 10);
-    itoa(steeringDuty, sBuf, 10);
 
-    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, tBuf);
-    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, sBuf);
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, &throttleDuty, sizeof(throttleDuty));
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, &steeringDuty, sizeof(steeringDuty));
 }

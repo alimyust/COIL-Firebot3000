@@ -2,6 +2,7 @@
 #define SCHEDULER_HPP
 
 #include "radio.h"
+#include "ProtocolCommands.hpp"
 
 enum class EventPriority : uint8_t {
     PRIORITY_LOW = 0,
@@ -29,21 +30,19 @@ public:
     static const size_t MAX_PACKET_HANDLERS = 8;
     static const size_t MAX_PERIODIC_TASKS = 4;
 
-    EventScheduler(RadioComm& radio) 
-        : _radio(radio), _event_count(0), _task_count(0), _packet_handler_count(0), _debug_enabled(false) {}
+    EventScheduler(RadioComm& radio, bool debug_enabled) 
+        : _radio(radio), _event_count(0), _task_count(0), _packet_handler_count(0), _debug_enabled(debug_enabled) {}
 
     /**
      * @brief NEW: Replaces ProtocolLayer outbound queue mechanics.
      * Passes raw payloads down to Layer 1 safely and non-blockingly.
      */
-    bool sendPacket(uint8_t target_node, uint8_t command_id, const char* payload) {
+    bool sendPacket(uint8_t target_node, uint8_t command_id, const void* payload, uint8_t payload_len) {
         if (_debug_enabled) {
-            Serial.print("Command ID ");
-            Serial.print(command_id);
-            Serial.print(" and Payload: ");
-            Serial.println(payload);
+            Serial.print("Tx: ");
+            printIncomingPayload(command_id, payload);
         }
-        return _radio.send(target_node, command_id, payload);
+        return _radio.send(target_node, command_id, payload, payload_len);
     }
 
     bool registerPacketHandler(uint8_t command_id, EventPriority priority, PacketHandlerCallback callback, void* context) {
@@ -94,8 +93,8 @@ public:
                         ev.periodic_callback = nullptr;
                         ev.context = _packet_registry[i].context;
                         if (_debug_enabled) {
-                            Serial.print("command ID: " + String(rx_packet.packet.command));
-                            Serial.println("  Payload: " + String(rx_packet.packet.payload));
+                            Serial.print("Rx: ");
+                            printIncomingPayload(rx_packet.packet.command, rx_packet.packet.payload);
                         }
                         pushEvent(ev);
                         break;
@@ -136,6 +135,28 @@ private:
     size_t _packet_handler_count;
 
     bool _debug_enabled = true;
+
+    void printIncomingPayload(uint8_t command, const void* payload) {
+        switch (command) {
+            case ProtocolCommands::CMD_THROTTLE: {
+                const ProtocolCommands::ThrottlePayload* throttle = (const ProtocolCommands::ThrottlePayload*)payload;
+                Serial.print("Throttle Duty: ");
+                Serial.println(throttle->duty); 
+                break;
+            }
+            
+            case ProtocolCommands::CMD_STEERING: {
+                const ProtocolCommands::SteeringPayload* steering = (const ProtocolCommands::SteeringPayload*)payload;
+                Serial.print("Steering Duty: ");
+                Serial.println(steering->duty);
+                break;
+            }
+            
+            default:
+                Serial.println("Unknown command, can't print structure.");
+                break;
+        }
+    }
 
     void pushEvent(const SystemEvent& ev) {
         if (_event_count >= MAX_EVENTS) return;

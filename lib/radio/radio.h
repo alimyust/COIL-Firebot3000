@@ -56,7 +56,7 @@ public:
      * @brief Hands an outbound payload directly to hardware SPI registers non-blockingly
      * @return true if the transmission started successfully, false if driver is busy or blocked
      */
-    bool send(uint8_t receiver_id, uint8_t command, const char* message);
+    bool send(uint8_t receiver_id, uint8_t command, const void* data, uint8_t data_len);
 
     /**
      * @brief Essential execution tick. Evaluates background TX flags and drains hardware 

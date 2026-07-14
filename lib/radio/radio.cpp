@@ -4,7 +4,7 @@
 RadioComm::RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
                      uint8_t int_pin, uint8_t rst_pin)
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
-    _rst_pin(rst_pin), _int_pin(int_pin), _tx_in_progress(false),
+     _int_pin(int_pin), _rst_pin(rst_pin), _tx_in_progress(false),
     _debug_enabled(false), _last_rssi(0),
     _rx_head(0), _rx_tail(0), _rx_count(0),
     _tx_head(0), _tx_tail(0), _tx_count(0) {}
@@ -61,17 +61,25 @@ bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
     return true;
 }
 
-bool RadioComm::send(uint8_t receiver_id, uint8_t command, const char* message) {
+bool RadioComm::send(uint8_t receiver_id, uint8_t command, const void* data, uint8_t data_len) {
     if (_tx_count >= RF69_TX_QUEUE_SIZE) {
         if (_debug_enabled) Serial.println("TX Rejected: Queue Full");
         return false;
     }
 
+    // Safety check to ensure we don't overflow the fixed buffer size
+    if (data_len > RF69_MAX_PAYLOAD_LEN) {
+        data_len = RF69_MAX_PAYLOAD_LEN;
+    }
+
     RF69_OutboundPacket& packet = _tx_queue[_tx_tail];
     packet.receiver_id = receiver_id;
     packet.command = command;
-    strncpy(packet.payload, message, sizeof(packet.payload) - 1);
-    packet.payload[sizeof(packet.payload) - 1] = '\0';
+
+    memset(packet.payload, 0, RF69_MAX_PAYLOAD_LEN); // Clear old garbage data
+    if (data != nullptr && data_len > 0) {
+        memcpy(packet.payload, data, data_len);
+    }
 
     _tx_tail = (_tx_tail + 1) % RF69_TX_QUEUE_SIZE;
     _tx_count++;
@@ -140,8 +148,7 @@ bool RadioComm::transmit_next_packet() {
     packet.sender_id = _node_id;
     packet.receiver_id = queued_packet.receiver_id;
     packet.command = queued_packet.command;
-    strncpy(packet.payload, queued_packet.payload, sizeof(packet.payload) - 1);
-    packet.payload[sizeof(packet.payload) - 1] = '\0';
+    memcpy(packet.payload, queued_packet.payload, RF69_MAX_PAYLOAD_LEN);
 
     if (_radio.send((uint8_t*)&packet, sizeof(packet))) {
         _tx_in_progress = true;

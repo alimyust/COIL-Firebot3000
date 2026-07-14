@@ -6,10 +6,10 @@
 #include "ProtocolCommands.hpp"
 
 RadioComm radio(1, 434.0, 8, 3, 4); // Node 1 (Robot)
-EventScheduler scheduler(radio);
+EventScheduler scheduler(radio, true); // Enable debug for scheduler
 
 MotorDriver motorDriver; 
-RobotHandler robotHandler(scheduler, motorDriver, true);
+RobotHandler robotHandler(scheduler, motorDriver, false);
 
 void setup() {
     Serial.begin(115200);
@@ -20,8 +20,6 @@ void setup() {
     scheduler.registerPacketHandler(ProtocolCommands::CMD_THROTTLE, EventPriority::PRIORITY_HIGH, RobotHandler::onThrottleReceived, &robotHandler);
     scheduler.registerPacketHandler(ProtocolCommands::CMD_STEERING, EventPriority::PRIORITY_HIGH, RobotHandler::onSteeringReceived, &robotHandler);
 
-    // 2. Schedule the diagnostic logging block to update cleanly every 50ms 
-    scheduler.addPeriodicTask(20, EventPriority::PRIORITY_LOW, RobotHandler::onDiagnosticTimerTick, &robotHandler);
 }
 
 void loop() {
