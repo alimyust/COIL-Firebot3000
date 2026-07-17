@@ -13,6 +13,8 @@ public:
     static const uint8_t TARGET_ROBOT_NODE = ProtocolCommands::NODE_ROBOT;
     static const uint8_t CMD_THROTTLE = ProtocolCommands::CMD_THROTTLE;
     static const uint8_t CMD_STEERING = ProtocolCommands::CMD_STEERING;
+    static const uint8_t CMD_SENSORS = ProtocolCommands::CMD_SENSORS;
+    static const uint8_t CMD_AUDIO = ProtocolCommands::CMD_AUDIO;
 
     ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug_enabled);
 

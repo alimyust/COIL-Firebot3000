@@ -14,7 +14,8 @@ namespace ProtocolCommands {
     enum CommandId : uint8_t {
         CMD_THROTTLE = 0x01,
         CMD_STEERING = 0x02,
-        CMD_SENSORS = 0x03
+        CMD_SENSORS = 0x03,
+        CMD_AUDIO = 0x04,
     };
 
     struct ThrottlePayload {
@@ -34,6 +35,15 @@ namespace ProtocolCommands {
         float temperature;
         float vocIndex;
         float noxIndex;
+    };
+    
+
+    // ADPCM Packet Structure (Matches Transmitter & Receiver)
+    struct RadioAudioPacket {
+        uint16_t sequence;
+        int16_t init_predicted;
+        int8_t init_step_index;
+        uint8_t data[55]; // 110 compressed samples
     };
 }
 #endif
