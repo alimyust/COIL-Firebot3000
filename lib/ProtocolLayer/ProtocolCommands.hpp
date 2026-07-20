@@ -14,6 +14,9 @@ namespace ProtocolCommands {
     enum CommandId : uint8_t {
         CMD_THROTTLE = 0x01,
         CMD_STEERING = 0x02,
+        CMD_SENSORS = 0x03,
+        CMD_AUDIO = 0x04,
+        CMD_HB = 0x05
     };
 
     struct ThrottlePayload {
@@ -34,91 +37,18 @@ namespace ProtocolCommands {
         float vocIndex;
         float noxIndex;
     };
+    
 
-    inline bool deserializeNumericPayload(const RadioComm::RF69_Packet& packet, uint8_t& value) {
-        if (packet.payload[0] == '\0') {
-            return false;
-        }
+    // ADPCM Packet Structure (Matches Transmitter & Receiver)
+    struct __attribute__((packed))RadioAudioPacket {
+        uint16_t sequence;        // 2 bytes
+        int16_t init_predicted;   // 2 bytes
+        int8_t init_step_index;   // 1 byte
+        uint8_t data[32];         // 32 bytes (holds 32 compressed samples)
+    };  
 
-        char* end = nullptr;
-        const unsigned long parsed = strtoul(packet.payload, &end, 10);
-        if (end == packet.payload) {
-            return false;
-        }
-
-        value = static_cast<uint8_t>(parsed);
-        return true;
-    }
-
-    inline bool deserializeNumericPayload(const RadioComm::RF69_Packet& packet, float& value) {
-        if (packet.payload[0] == '\0') {
-            return false;
-        }
-
-        char* end = nullptr;
-        value = strtof(packet.payload, &end);
-        return end != packet.payload;
-    }
-
-    inline bool deserializeThrottlePayload(const RadioComm::RF69_Packet& packet, ThrottlePayload& payload) {
-        return deserializeNumericPayload(packet, payload.duty);
-    }
-
-    inline bool deserializeSteeringPayload(const RadioComm::RF69_Packet& packet, SteeringPayload& payload) {
-        return deserializeNumericPayload(packet, payload.duty);
-    }
-
-    inline bool deserializeSensorPayload(const RadioComm::RF69_Packet& packet, SensorPayload& payload) {
-        if (!packet.payload) return false;
-
-        char buffer[128];
-        strncpy(buffer, packet.payload, sizeof(buffer) - 1);
-        buffer[sizeof(buffer) - 1] = '\0';
-
-        char* end = nullptr;
-        char* token = strtok(buffer, ",");
-        if (!token) return false;
-        payload.pm1p0 = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.pm2p5 = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.pm4p0 = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.pm10p0 = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.humidity = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.temperature = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.vocIndex = strtof(token, &end);
-        if (end == token) return false;
-
-        token = strtok(nullptr, ",");
-        if (!token) return false;
-        payload.noxIndex = strtof(token, &end);
-        if (end == token) return false;
-
-        return true;
-    }
-
+    struct HeartbeatPayload {
+        uint32_t timestamp;
+    };
 }
-
 #endif
