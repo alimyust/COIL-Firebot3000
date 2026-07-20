@@ -27,3 +27,13 @@ void ControllerHandler::sendControlValues(uint8_t throttleDuty, uint8_t steering
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_THROTTLE, &throttleDuty, sizeof(throttleDuty));
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_STEERING, &steeringDuty, sizeof(steeringDuty));
 }
+
+void ControllerHandler::onHeartbeatTrigger() {
+    uint32_t timestamp = millis();
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_HB, &timestamp, sizeof(timestamp));
+
+    if (_debug_enabled) {
+        Serial.print("Heartbeat sent at: ");
+        Serial.println(timestamp);
+    }
+}

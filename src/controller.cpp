@@ -25,14 +25,14 @@ void setup() {
     Serial.begin(115200);
     radio.begin();
     mic.begin();
-    speaker.begin();
-
-    scheduler.addPeriodicTask(20, EventPriority::PRIORITY_MEDIUM, ControllerHandler::onJoystickUpdate, &handler);
-
-    scheduler.registerPacketHandler(ProtocolCommands::CMD_AUDIO, EventPriority::PRIORITY_CRITICAL, AudioHandler::onAudioPacketReceived, &audioHandler);}
-    // register packet received (connect to scope)
-
+    // speaker.begin();
+    Serial.println("Controller Setup Complete");
+    // scheduler.addPeriodicTask(20, EventPriority::PRIORITY_MEDIUM, ControllerHandler::onJoystickUpdate, &handler);
+    scheduler.addPeriodicTask(1, EventPriority::PRIORITY_CRITICAL, AudioHandler::onAudioUpdate, &audioHandler); 
+    scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_CRITICAL, ControllerHandler::onHeartbeat, &handler);
+}
 void loop() {
     radio.update();
     scheduler.update();
+    // Serial.println("Controller Loop Running");
 }

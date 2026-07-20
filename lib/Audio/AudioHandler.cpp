@@ -37,19 +37,16 @@ AudioHandler::AudioHandler(EventScheduler &scheduler, Microphone &mic, Speaker &
 // ============================================================================
 void AudioHandler::onAudioTrigger() {
     if (!_mic.isBufferReady()) {
-        if (_debug_enabled) {
-            Serial.println("Audio buffer not ready, skipping transmission.");
-        }
+        Serial.println("Audio buffer not ready, skipping transmission.");
         return;
     }
-
     int16_t pcm_buffer[SAMPLE_BLOCK_LENGTH];
     _mic.readActiveBuffer(pcm_buffer);
-    if (_debug_enabled) {
-        Serial.println("Audio Triggered");
-    }
+    // if (_debug_enabled) {
+    //     Serial.println("Audio Triggered");
+    // }
     processAndSend(&pcm_buffer[0]);
-    processAndSend(&pcm_buffer[128]);
+    // processAndSend(&pcm_buffer[SAMPLE_BLOCK_LENGTH / 2]);
 }
 
 void AudioHandler::processAndSend(const int16_t* pcm_segment) {
@@ -58,8 +55,8 @@ void AudioHandler::processAndSend(const int16_t* pcm_segment) {
     packet.init_predicted = _encoder_predicted;
     packet.init_step_index = _encoder_step;
 
-    size_t sample_idx = 0;
-    for (size_t i = 0; i < 55; i++) {
+    size_t sample_idx = 0;   // V runs 32 times to pack 64 bytes into 32 bytes (1+1 nibbles per iteration)
+    for (size_t i = 0; i < SAMPLE_BLOCK_LENGTH/2; i++) {
         uint8_t nibble1 = encodeSample(pcm_segment[sample_idx++]);
         uint8_t nibble2 = encodeSample(pcm_segment[sample_idx++]);
         packet.data[i] = (nibble1 << 4) | (nibble2 & 0x0F);
@@ -80,24 +77,23 @@ void AudioHandler::processAndSend(const int16_t* pcm_segment) {
 // ============================================================================
 void AudioHandler::processAudio(const ProtocolCommands::RadioAudioPacket& payload) {
     _last_rx_sequence = payload.sequence;
-    Serial.print("Packet processAudio");
-    // Resynchronize codec prediction calculations
     _decoder_predicted = payload.init_predicted;
     _decoder_step = payload.init_step_index;
 
-    // Run decompression
-    int16_t decompressed_pcm[110];
+    // Scale dynamically to the block size
+    int16_t decompressed_pcm[SAMPLE_BLOCK_LENGTH];
     decodePacket(&payload, decompressed_pcm);
 
-    // Stream directly to the physical speaker hardware
-    for (size_t i = 0; i < 110; i++) {
+    for (size_t i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
         _speaker.write(decompressed_pcm[i]);
     }
 }
 
 void AudioHandler::decodePacket(const ProtocolCommands::RadioAudioPacket* packet, int16_t* output_pcm) {
     size_t out_idx = 0;
-    for (size_t i = 0; i < 55; i++) {
+    const size_t iterations = SAMPLE_BLOCK_LENGTH / 2;
+
+    for (size_t i = 0; i < iterations; i++) {
         uint8_t byte = packet->data[i];
         output_pcm[out_idx++] = decodeSample((byte >> 4) & 0x0F);
         output_pcm[out_idx++] = decodeSample(byte & 0x0F);

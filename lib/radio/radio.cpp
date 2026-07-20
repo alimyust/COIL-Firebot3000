@@ -11,6 +11,7 @@ RadioComm::RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
 
 bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
     // 1. Hardware pin reset sequence for RFM69HCW
+    Serial.println("Resetting Radio Module...");
     pinMode(_rst_pin, OUTPUT);
     digitalWrite(_rst_pin, LOW);
     delay(10);
@@ -18,7 +19,6 @@ bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
     delay(10);
     digitalWrite(_rst_pin, LOW);
     delay(10);
-
     // 2. Initialize driver
     // RadioHead internally calculates vectors and registers its own ISR (isr0/1/2) 
     // to the hardware interrupt pin here. Do NOT attach an interrupt manually.
@@ -95,6 +95,7 @@ void RadioComm::update() {
     // Stage A: Handle Asynchronous Transmit State Machines
     // RadioHead's internal hardware ISR automatically shifts driver mode out of 
     // RHModeTx into RHModeIdle the exact microsecond the physical transmission completes.
+    // _debug_enabled = true;
     if (_tx_in_progress && _radio.mode() != RHGenericDriver::RHModeTx) {
         _radio.setModeRx(); // Re-arm local receiver circuits to listen for packets
         _tx_in_progress = false;

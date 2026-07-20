@@ -49,3 +49,10 @@ void RobotHandler::processSteering(const ProtocolCommands::SteeringPayload& payl
     _motor_driver.setSteeringDuty(_lastSteeringMap);
 
 }
+
+void RobotHandler::processHeartbeat(const ProtocolCommands::HeartbeatPayload& payload) {
+    if (_debug) {
+        Serial.print("HB received at: ");
+        Serial.println(payload.timestamp);  
+    }
+}

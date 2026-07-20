@@ -138,14 +138,14 @@ private:
 
     void printIncomingPayload(uint8_t command, const void* payload) {
         switch (command) {
-            case ProtocolCommands::CMD_THROTTLE: {  break;
+            case ProtocolCommands::CMD_THROTTLE: {
                 const ProtocolCommands::ThrottlePayload* throttle = (const ProtocolCommands::ThrottlePayload*)payload;
                 Serial.print("Throttle Duty: ");
                 Serial.println(throttle->duty); 
                 break;
             }
             
-            case ProtocolCommands::CMD_STEERING: { break;
+            case ProtocolCommands::CMD_STEERING: {
                 const ProtocolCommands::SteeringPayload* steering = (const ProtocolCommands::SteeringPayload*)payload;
                 Serial.print("Steering Duty: ");
                 Serial.println(steering->duty);
@@ -171,6 +171,12 @@ private:
                 }
                 Serial.println("...]");
                 break;
+                break;
+            }
+            case ProtocolCommands::CMD_HB: {
+                const ProtocolCommands::HeartbeatPayload* hb = (const ProtocolCommands::HeartbeatPayload*)payload;
+                Serial.print("Heartbeat Timestamp: ");
+                Serial.println(hb->timestamp);
                 break;
             }
             default:

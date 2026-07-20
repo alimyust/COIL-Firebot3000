@@ -15,6 +15,7 @@ public:
     static const uint8_t CMD_STEERING = ProtocolCommands::CMD_STEERING;
     static const uint8_t CMD_SENSORS = ProtocolCommands::CMD_SENSORS;
     static const uint8_t CMD_AUDIO = ProtocolCommands::CMD_AUDIO;
+    static const uint8_t CMD_HB = ProtocolCommands::CMD_HB;
 
     ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug_enabled);
 
@@ -23,13 +24,17 @@ public:
      * Evaluates hardware pins and directly transmits dependencies.
      */
     void onJoystickTrigger();
-
+    void onHeartbeatTrigger();
 
     // ========================================================================
     // SCHEDULER INTERFACE ROUTING STATIC BRIDGES
     // ========================================================================
     static void onJoystickUpdate(void* context) {
         static_cast<ControllerHandler*>(context)->onJoystickTrigger();
+    }
+
+    static void onHeartbeat(void* context) {
+        static_cast<ControllerHandler*>(context)->onHeartbeatTrigger();
     }
 
 private:

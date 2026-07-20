@@ -33,7 +33,6 @@ void Microphone::readActiveBuffer(int16_t* output_buffer) {
     if (!adc_buffer_filled || active_adc_buffer == nullptr) return;
 
     for (int i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
-        // Convert 12-bit unsigned (0-4095) to centered signed 16-bit
         output_buffer[i] = ((int16_t)active_adc_buffer[i] - 2048) << 4;
     }
     adc_buffer_filled = false;
@@ -43,7 +42,7 @@ void Microphone::adc_init() {
     analogRead(ADC_PIN);
     ADC->CTRLA.bit.ENABLE = 0;
     ADCsync();
-    ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2;
+    ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2_Val;
     ADC->REFCTRL.bit.REFSEL = ADC_REFCTRL_REFSEL_INTVCC1;
     ADCsync();
     ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[ADC_PIN].ulADCChannelNumber;

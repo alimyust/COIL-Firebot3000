@@ -13,6 +13,7 @@ public:
     void processThrottle(const ProtocolCommands::ThrottlePayload& payload);
     void processSteering(const ProtocolCommands::SteeringPayload& payload);
     void handleDiagnostics();
+    void processHeartbeat(const ProtocolCommands::HeartbeatPayload& payload);
 
     // ========================================================================
     // UNIVERSAL SCHEDULER STATIC ROUTING BRIDGES
@@ -27,6 +28,10 @@ public:
         static_cast<RobotHandler*>(context)->processSteering(payload);
     }
 
+    static void onHeartbeatReceived(const RadioComm::RF69_Packet& packet, void* context) {
+        ProtocolCommands::HeartbeatPayload payload;
+        static_cast<RobotHandler*>(context)->processHeartbeat(payload);
+    }
 private:
     // Preserved exact original mathematical mapping function
     static float mapAroundNeutral(uint8_t value,

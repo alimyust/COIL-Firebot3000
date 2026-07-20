@@ -26,18 +26,16 @@ public:
     
     // Periodic trigger bridge (For TX)
     static void onAudioUpdate(void* context) {
-        if (static_cast<AudioHandler*>(context)->_debug_enabled) {
-            Serial.println("Audio Update Triggered");
-        }
+        // Serial.println("Audio Update Triggered");
         static_cast<AudioHandler*>(context)->onAudioTrigger();
     }
 
     // Packet reception bridge (For RX)
     static void onAudioPacketReceived(const RadioComm::RF69_Packet& packet, void* context) {
         // Extract the structured payload directly from the raw packet
-        if (static_cast<AudioHandler*>(context)->_debug_enabled) {
-            Serial.print("Audio Packet Received");
-        }
+        // if (static_cast<AudioHandler*>(context)->_debug_enabled) {
+        //     // Serial.print("Audio Packet Received");
+        // }
         const ProtocolCommands::RadioAudioPacket* payload = reinterpret_cast<const ProtocolCommands::RadioAudioPacket*>(packet.payload);
         static_cast<AudioHandler*>(context)->processAudio(*payload);
     }

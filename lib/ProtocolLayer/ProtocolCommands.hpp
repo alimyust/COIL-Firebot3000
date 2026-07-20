@@ -16,6 +16,7 @@ namespace ProtocolCommands {
         CMD_STEERING = 0x02,
         CMD_SENSORS = 0x03,
         CMD_AUDIO = 0x04,
+        CMD_HB = 0x05
     };
 
     struct ThrottlePayload {
@@ -39,11 +40,15 @@ namespace ProtocolCommands {
     
 
     // ADPCM Packet Structure (Matches Transmitter & Receiver)
-    struct RadioAudioPacket {
-        uint16_t sequence;
-        int16_t init_predicted;
-        int8_t init_step_index;
-        uint8_t data[55]; // 110 compressed samples
+    struct __attribute__((packed))RadioAudioPacket {
+        uint16_t sequence;        // 2 bytes
+        int16_t init_predicted;   // 2 bytes
+        int8_t init_step_index;   // 1 byte
+        uint8_t data[32];         // 32 bytes (holds 32 compressed samples)
+    };  
+
+    struct HeartbeatPayload {
+        uint32_t timestamp;
     };
 }
 #endif

@@ -4,7 +4,7 @@
 #include <Adafruit_ZeroDMA.h>
 
 #define ADC_PIN A1
-#define SAMPLE_BLOCK_LENGTH 256
+#define SAMPLE_BLOCK_LENGTH 64
 
 class Microphone {
     public:
