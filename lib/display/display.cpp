@@ -25,7 +25,7 @@ void DisplayOLED::begin() {
     display.setTextSize(1);
     display.setCursor(0,0);
     display.setTextColor(SH110X_WHITE);
-
+    display.display();
     // 3. Allocate and Configure the DMA Controller for SERCOM3 [cite: 249]
     I2C_DMA.allocate();
     I2C_DMA.setTrigger(SERCOM3_DMAC_ID_TX); // Only push when mailbox is empty [cite: 254, 256]
@@ -56,61 +56,56 @@ void DisplayOLED::pushFrame() {
     _is_pushing_frame = true; 
     _waiting_for_dma = false;
 }
-
 void DisplayOLED::update() {
-    // If no frame is actively being sent, or the DMA is currently busy, do nothing.
-    // Serial.println(_waiting_for_dma);
-    if (!_is_pushing_frame || _waiting_for_dma){
-        return;}
-    // If we finished all 8 pages[cite: 230], release the state machine
-    if (_current_page >= 8) {
+    if (!_is_pushing_frame || _waiting_for_dma) return;
+
+    // --- STAGE 0: Bus Closure Check ---
+    if (_current_page > 0 && _current_page <= 16) {
+        while (!SERCOM3->I2CM.INTFLAG.bit.MB); 
+        SERCOM3->I2CM.CTRLB.bit.CMD = 0x3; // Send STOP condition
+        while (SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+    }
+
+    // --- STAGE 1: Check Termination (16 PAGES TOTAL) ---
+    if (_current_page >= 16) {
         _is_pushing_frame = false;
         _current_page = 0;
         return;
     }
 
-    // --- STAGE 1: CPU Handshake (Takes ~100us) ---
-    // Safely use standard Wire in the main loop to address the exact page
+    // --- STAGE 2: Set Page Address via Wire ---
     Wire.beginTransmission(0x3C);
-    Wire.write(0x00); // Command byte stream
-    Wire.write(0xB0 + _current_page); // Send Page address
-    Wire.write(0x10); // High column
-    Wire.write(0x00); // Low column
+    Wire.write(0x00);                  // Command byte stream flag
+    Wire.write(0xB0 + _current_page);  // Page 0 to 15 (0xB0 to 0xBF)
+    Wire.write(0x00);                  // Low Column 0
+    Wire.write(0x10);                  // High Column 0
     Wire.endTransmission(); 
 
-    // --- STAGE 2: Manual SERCOM Hijack ---
-    // Generate a START condition + Write bit (0) to claim the bus
+    // --- STAGE 3: SERCOM Hijack ---
     SERCOM3->I2CM.ADDR.bit.ADDR = (0x3C << 1) | 0; 
-    while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
-    while(!SERCOM3->I2CM.INTFLAG.bit.MB); // Wait for ACK
-    
-    // Send the Data Control Byte (0x40) indicating the following payload is pixel data
-    SERCOM3->I2CM.DATA.reg = 0x40;
-    while(!SERCOM3->I2CM.INTFLAG.bit.MB); // Wait for ACK
+    while (SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
+    while (!SERCOM3->I2CM.INTFLAG.bit.MB); 
 
-    // --- STAGE 3: Pointer Arithmetic & DMA Unleash ---
-    // Calculate memory slice: Move base pointer forward by (page * 128) bytes [cite: 278, 281]
-    uint8_t* slice_start = display.getBuffer() + (_current_page * 128);
+    SERCOM3->I2CM.DATA.reg = 0x40;     // Data Payload indicator
+    while (!SERCOM3->I2CM.INTFLAG.bit.MB); 
 
-    // Update the descriptor with the new memory address
-    I2C_DMA.changeDescriptor(_descriptor, (void*)slice_start, (void*)&SERCOM3->I2CM.DATA.reg, 128);
+    // --- STAGE 4: Pointer Arithmetic & DMA (64 BYTES PER PAGE) ---
+    // Memory stride is 64 bytes per page slice
+    uint8_t* slice_start = display.getBuffer() + (_current_page * 64);
+
+    // Update descriptor for 64-byte burst
+    I2C_DMA.changeDescriptor(_descriptor, (void*)slice_start, (void*)&SERCOM3->I2CM.DATA.reg, 64);
     
-    // Lock the state machine and kick off the hardware
     _waiting_for_dma = true;
+    _current_page++; 
+
     I2C_DMA.startJob();
-    yield();
-
 }
-
-// ISR Callback: Triggers exactly when the 128th byte is physically pushed
 void DisplayOLED::dma_isr_callback(Adafruit_ZeroDMA *dma) {
     if (_instance == nullptr) return;
 
-    // 1. Manually force a hardware I2C STOP condition to release the bus 
-    SERCOM3->I2CM.CTRLB.bit.CMD = 0x3; 
-    while(SERCOM3->I2CM.SYNCBUSY.bit.SYSOP);
 
     // 2. Advance the state machine for the main loop to catch 
-    _instance->_current_page++;
+    // _instance->_current_page++;
     _instance->_waiting_for_dma = false;
 }
