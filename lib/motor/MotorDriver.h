@@ -3,7 +3,6 @@
 #include "ProtocolLayer.hpp"
 #include "QuadHWPwm.hpp"
 #include "Joystick.hpp"
-#include "DebugLog.hpp"
 
 // HRW values measured from the cars original controller
 namespace MotorConfig {

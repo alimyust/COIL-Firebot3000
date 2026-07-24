@@ -16,7 +16,8 @@ namespace ProtocolCommands {
         CMD_STEERING = 0x02,
         CMD_SENSORS = 0x03,
         CMD_AUDIO = 0x04,
-        CMD_HB = 0x05
+        CMD_HB = 0x05,
+        CMD_DISPLAY = 0x06
     };
 
     struct ThrottlePayload {

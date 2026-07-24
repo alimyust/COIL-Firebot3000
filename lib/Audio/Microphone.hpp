@@ -27,7 +27,7 @@ class Microphone {
 
         static void ADCsync() {
            while (ADC->STATUS.bit.SYNCBUSY == 1);
-        }
+        }   
            
         static void dma_callback(Adafruit_ZeroDMA *dma);
 };

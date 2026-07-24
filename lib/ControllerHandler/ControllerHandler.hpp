@@ -3,7 +3,10 @@
 
 #include <Arduino.h>
 #include "scheduler.h"
+
 #include "ProtocolCommands.hpp"
+#include "Joystick.hpp"
+#include "display.h"
 
 class Joystick; // Forward declaration
 
@@ -17,7 +20,7 @@ public:
     static const uint8_t CMD_AUDIO = ProtocolCommands::CMD_AUDIO;
     static const uint8_t CMD_HB = ProtocolCommands::CMD_HB;
 
-    ControllerHandler(EventScheduler &scheduler, Joystick &joystick, bool debug_enabled);
+    ControllerHandler(EventScheduler &scheduler, Joystick &joystick, DisplayOLED &_oled, bool debug_enabled);
 
     /**
      * @brief Triggered at a fixed time slice by the scheduler.
@@ -25,7 +28,7 @@ public:
      */
     void onJoystickTrigger();
     void onHeartbeatTrigger();
-
+    void onOLEDTrigger();
     // ========================================================================
     // SCHEDULER INTERFACE ROUTING STATIC BRIDGES
     // ========================================================================
@@ -37,11 +40,16 @@ public:
         static_cast<ControllerHandler*>(context)->onHeartbeatTrigger();
     }
 
+    static void onOLED(void* context){
+        static_cast<ControllerHandler*>(context)->onOLEDTrigger();
+    }
+
 private:
     void sendControlValues(uint8_t throttleDuty, uint8_t steeringDuty);
 
     EventScheduler &_scheduler;
     Joystick &_joystick;
+    DisplayOLED &_oled;
     bool _debug_enabled;
 
     uint8_t _lastThrottleDuty;
