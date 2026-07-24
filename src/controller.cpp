@@ -1,16 +1,14 @@
 #include <Arduino.h>
 
-#include "scheduler.h"
-#include "ControllerHandler.hpp"
+#include "handlers/scheduler.h"
+#include "handlers/ControllerHandler.hpp"
+#include "handlers/AudioHandler.hpp"
 
 #include "radio.h"
 
 #include "Joystick.hpp"
-#include "ProtocolCommands.hpp"
-#include <iostream>  // For C++ style cout
-
+#include "ProtocolCommands.h"
 #include "Microphone.hpp"
-#include "AudioHandler.hpp"
 #include "Speaker.hpp"
 
 #include "display.h"

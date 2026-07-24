@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "scheduler.h"
 
-#include "ProtocolCommands.hpp"
+#include "ProtocolCommands.h"
 #include "Joystick.hpp"
 #include "display.h"
 

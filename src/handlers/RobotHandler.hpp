@@ -2,8 +2,8 @@
 #define ROBOT_HANDLER_HPP
 
 #include "scheduler.h"
-#include "MotorDriver.h"
-#include "ProtocolCommands.hpp"
+#include <MotorDriver.h>                // Pulled from generic lib/
+#include "ProtocolCommands.h"
 
 class RobotHandler {
 public:

@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include "scheduler.h"
-#include "ProtocolCommands.hpp"
+#include <ProtocolCommands.h>
 #include "Microphone.hpp"
 #include "Speaker.hpp"
 

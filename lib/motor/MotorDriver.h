@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ProtocolLayer.hpp"
 #include "QuadHWPwm.hpp"
 #include "Joystick.hpp"
 

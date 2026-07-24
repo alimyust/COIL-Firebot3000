@@ -2,7 +2,7 @@
 #define SCHEDULER_HPP
 
 #include "radio.h"
-#include "ProtocolCommands.hpp"
+#include "ProtocolCommands.h"
 
 enum class EventPriority : uint8_t {
     PRIORITY_LOW = 0,

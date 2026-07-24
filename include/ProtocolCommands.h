@@ -2,8 +2,6 @@
 #define PROTOCOL_COMMANDS_HPP
 
 #include <Arduino.h>
-#include "radio.h"
-#include <stdlib.h>
 
 namespace ProtocolCommands {
     enum NodeId : uint8_t {
