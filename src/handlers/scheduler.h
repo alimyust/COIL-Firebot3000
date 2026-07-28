@@ -136,9 +136,68 @@ private:
 
     bool _debug_enabled = true;
 
-    void printIncomingPayload(uint8_t command, const void* payload) {
-        return;
+  void printIncomingPayload(uint8_t command, const void* payload) {
+    switch (command) {
+        case ProtocolCommands::CMD_MOTOR: {
+            const auto* p = static_cast<const ProtocolCommands::MotorPayload*>(payload);
+
+            Serial.println(F("=== Motor Payload ==="));
+            Serial.print(F("Throttle: ")); Serial.println(p->throttle_duty);
+            Serial.print(F("Steering: ")); Serial.println(p->steer_duty);
+            Serial.print(F("Turret X: ")); Serial.println(p->turret_x_duty);
+            Serial.print(F("Turret Y: ")); Serial.println(p->turret_y_duty);
+            break;
+        }
+
+        case ProtocolCommands::CMD_SENSORS: {
+            const auto* p = static_cast<const ProtocolCommands::SensorPayload*>(payload);
+
+            Serial.println(F("=== Sensor Payload ==="));
+            Serial.print(F("PM1.0: "));       Serial.println(p->pm1p0);
+            Serial.print(F("PM2.5: "));       Serial.println(p->pm2p5);
+            Serial.print(F("PM4.0: "));       Serial.println(p->pm4p0);
+            Serial.print(F("PM10: "));        Serial.println(p->pm10p0);
+            Serial.print(F("Humidity: "));    Serial.println(p->humidity);
+            Serial.print(F("Temperature: ")); Serial.println(p->temperature);
+            Serial.print(F("VOC Index: "));   Serial.println(p->vocIndex);
+            Serial.print(F("NOx Index: "));   Serial.println(p->noxIndex);
+            Serial.print(F("CO2: "));         Serial.println(p->co2);
+            break;
+        }
+
+        case ProtocolCommands::CMD_AUDIO: {
+            const auto* p = static_cast<const ProtocolCommands::RadioAudioPacket*>(payload);
+
+            Serial.println(F("=== Audio Payload ==="));
+            Serial.print(F("Sequence: "));       Serial.println(p->sequence);
+            Serial.print(F("Initial Predicted: ")); Serial.println(p->init_predicted);
+            Serial.print(F("Initial Step Index: ")); Serial.println(p->init_step_index);
+
+            Serial.print(F("Compressed Data: "));
+            for (uint8_t i = 0; i < sizeof(p->data); i++) {
+                if (p->data[i] < 0x10) Serial.print('0');
+                Serial.print(p->data[i], HEX);
+                Serial.print(' ');
+            }
+            Serial.println();
+            break;
+        }
+
+        case ProtocolCommands::CMD_HB: {
+            const auto* p = static_cast<const ProtocolCommands::HeartbeatPayload*>(payload);
+
+            Serial.println(F("=== Heartbeat Payload ==="));
+            Serial.print(F("Timestamp: "));
+            Serial.println(p->timestamp);
+            break;
+        }
+
+        default:
+            Serial.print(F("Unknown command: 0x"));
+            Serial.println(command, HEX);
+            break;
     }
+}
 
     void pushEvent(const SystemEvent& ev) {
         if (_event_count >= MAX_EVENTS) return;

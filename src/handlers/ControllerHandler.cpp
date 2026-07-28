@@ -20,17 +20,27 @@ void ControllerHandler::onOLEDTrigger(){
 
 void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& payload) {
     // 1. Update internal state only if incoming values are non-zero
-    if (payload.co2 > 0)           _last_co2         = payload.co2;
-    if (payload.temperature != 0) _last_temperature = payload.temperature;
-    if (payload.humidity != 0)    _last_humidity    = payload.humidity;
-    if (payload.vocIndex != 0)    _last_vocIndex    = payload.vocIndex;
-    if (payload.noxIndex != 0)    _last_noxIndex    = payload.noxIndex;
-    if (payload.pm1p0 != 0)       _last_pm1p0       = payload.pm1p0;
-    if (payload.pm2p5 != 0)       _last_pm2p5       = payload.pm2p5;
-    if (payload.pm4p0 != 0)       _last_pm4p0       = payload.pm4p0;
-    if (payload.pm10p0 != 0)      _last_pm10p0      = payload.pm10p0;
+    _last_co2         = payload.co2;
+    _last_temperature = payload.temperature;
+    _last_humidity    = payload.humidity;
+    _last_vocIndex    = payload.vocIndex;
+    _last_noxIndex    = payload.noxIndex;
+    _last_pm1p0       = payload.pm1p0;
+    _last_pm2p5       = payload.pm2p5;
+    _last_pm4p0       = payload.pm4p0;
+    _last_pm10p0      = payload.pm10p0;
 
-    // 2. Clear display and set styling
+// Serial.printf("SEN66 -> CO2: %.1f ppm | Temp: %.1f C | RH: %.1f %% | VOC: %.0f | NOx: %.0f | PM1.0: %.1f | PM2.5: %.1f | PM4.0: %.1f | PM10: %.1f\n",
+//             _last_co2, 
+//             _last_temperature, 
+//             _last_humidity, 
+//             _last_vocIndex, 
+//             _last_noxIndex,     
+//             _last_pm1p0, 
+//             _last_pm2p5, 
+//             _last_pm4p0, 
+//             _last_pm10p0);  // 2. Clear display and set styling
+            
     _oled.display.clearDisplay();
     _oled.display.setTextSize(1);       // 6x8 pixels per character
     _oled.display.setTextWrap(false);   // Keep layout aligned
@@ -86,29 +96,16 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     _oled.display.print("P10 :");
     _oled.display.print(_last_pm10p0, 1);
 
-    // Push frame buffer to display
+    // // Push frame buffer to display
     _oled.pushFrame();
 }
 
 void ControllerHandler::onHeartbeatTrigger() {
     uint32_t timestamp = millis();
     _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_HB, &timestamp, sizeof(timestamp));
-    _oled.display.clearDisplay();
-    // 2. Configure font settings (required for clean rendering)
-    _oled.display.setTextSize(1);              // Normal 1:1 pixel scale (6x8 px per char)
-    // _oled.display.setTextColor(SH110X_WHITE);  // Draw white text on black background
-    _oled.display.setTextWrap(false);          // Prevent unintended wrapping
-    _oled.display.setCursor(0,0);
-    _oled.display.println("Time: ");
-    _oled.display.println(timestamp);
-    // int bufferSize = 1024; 
-    // for (int i = 0; i < bufferSize; i++) {
-    //     Serial.print(_oled.display.getBuffer()[i]);
-    //     Serial.print(" "); // Adds a space between elements for readability
-    // }
 
     if (_debug_enabled) {
-        // Serial.print("Heartbeat sent at: ");
-        // Serial.println(timestamp);
+        Serial.print("Heartbeat sent at: ");
+        Serial.println(timestamp);
     }
 }

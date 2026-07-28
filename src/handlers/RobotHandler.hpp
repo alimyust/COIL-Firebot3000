@@ -24,8 +24,8 @@ public:
     }
 
     static void onMotorReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::MotorPayload payload;
-        static_cast<RobotHandler*>(context)->processMotor(payload);
+        const ProtocolCommands::MotorPayload* payload = reinterpret_cast<const ProtocolCommands::MotorPayload*>(packet.payload);
+        static_cast<RobotHandler*>(context)->processMotor(*payload);
     }
 
 

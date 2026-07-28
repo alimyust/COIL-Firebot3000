@@ -30,18 +30,21 @@ void RobotHandler::processMotor(const ProtocolCommands::MotorPayload& payload){
 
 void RobotHandler::onSensorTrigger(){
     ProtocolCommands::SensorPayload sen66_payload = {};
-    _sensor.readData(
-        sen66_payload.co2, 
-        sen66_payload.vocIndex, 
-        sen66_payload.temperature, 
-        sen66_payload.humidity, 
-        sen66_payload.pm1p0, 
-        sen66_payload.pm2p5, 
-        sen66_payload.pm4p0,
-        sen66_payload.pm10p0,
-        sen66_payload.noxIndex
-    );
-
+    if (!_sensor.readData(
+            sen66_payload.co2,
+            sen66_payload.vocIndex,
+            sen66_payload.temperature,
+            sen66_payload.humidity,
+            sen66_payload.pm1p0,
+            sen66_payload.pm2p5,
+            sen66_payload.pm4p0,
+            sen66_payload.pm10p0,
+            sen66_payload.noxIndex))
+    {
+        if(_debug) Serial.println("Empty sensor packet");
+        return;
+    }
+    
     _scheduler.sendPacket(ProtocolCommands::NODE_CONTROLLER, ProtocolCommands::CMD_SENSORS, &sen66_payload, sizeof(sen66_payload));
 }
 

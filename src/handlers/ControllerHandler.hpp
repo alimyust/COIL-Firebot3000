@@ -35,10 +35,17 @@ public:
     // SCHEDULER INTERFACE ROUTING STATIC BRIDGES
     // ========================================================================
 
-    static void onSensorReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::SensorPayload payload;
-        static_cast<ControllerHandler*>(context)->processSensor(payload);
-    }
+  static void onSensorReceived(const RadioComm::RF69_Packet& packet, void* context) {
+    if (context == nullptr) return;
+
+    // Local stack variable guarantees proper 4-byte memory alignment
+    ProtocolCommands::SensorPayload payload;
+    
+    // Copy safely out of the RF buffer byte array
+    memcpy(&payload, packet.payload, sizeof(payload));
+
+    static_cast<ControllerHandler*>(context)->processSensor(payload);
+}
 
     static void onJoystickUpdate(void* context) {
         static_cast<ControllerHandler*>(context)->onJoystickTrigger();
@@ -72,7 +79,7 @@ private:
     float _last_temperature = 0.0f;
     float _last_vocIndex    = 0.0f;
     float _last_noxIndex    = 0.0f;
-    uint16_t _last_co2      = 0;
+    float _last_co2      = 0.0f;
 };
 
 #endif // CONTROLLER_HANDLER_HPP

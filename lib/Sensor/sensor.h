@@ -26,12 +26,12 @@ class Sen66_Sensor {
         }
         
         // Non-blocking read. Returns 'true' only when fresh data was updated.
-        bool readData(uint16_t &co2, float &tvoc, float &temp, float &rh,
+        bool readData(float &co2, float &tvoc, float &temp, float &rh,
                     float &pm1_0, float &pm2_5, float &pm4_0, float &pm10_0
                     ,float &noxIndex) {
             bool isReady = false;
             uint8_t padding = 0; // Required by driver syntax
-
+            uint16_t raw_co2 = 0;
             // Check if data is ready to be fetched
             uint16_t error = sensor.getDataReady(padding, isReady);
             if (error || !isReady) {
@@ -41,8 +41,10 @@ class Sen66_Sensor {
             // Read all 9 measured parameters from SEN66
             error = sensor.readMeasuredValues(
                 pm1_0, pm2_5, pm4_0, pm10_0, 
-                rh, temp, tvoc, noxIndex, co2
+                rh, temp, tvoc, noxIndex, raw_co2
             );
+
+            co2 = (float) raw_co2;
 
             if (error != 0) {
                 return false;

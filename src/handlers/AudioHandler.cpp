@@ -37,7 +37,6 @@ AudioHandler::AudioHandler(EventScheduler &scheduler, Microphone &mic, Speaker &
 // ============================================================================
 void AudioHandler::onAudioTrigger() {
     if (!_mic.isBufferReady()) {
-        Serial.println("Audio buffer not ready, skipping transmission.");
         return;
     }
     int16_t pcm_buffer[SAMPLE_BLOCK_LENGTH];
@@ -47,6 +46,35 @@ void AudioHandler::onAudioTrigger() {
     // }
     processAndSend(&pcm_buffer[0]);
     // processAndSend(&pcm_buffer[SAMPLE_BLOCK_LENGTH / 2]);
+}
+
+void AudioHandler::beginTimer() {
+    // Enable GCLK1/GCLK0 for TC3
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
+                        GCLK_CLKCTRL_GEN_GCLK0 | 
+                        GCLK_CLKCTRL_ID_TCC2_TC3;
+    while (GCLK->STATUS.bit.SYNCBUSY);
+
+    TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
+    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+
+    // 48 MHz / 16 = 3 MHz clock
+    // Target: 16000 Hz -> 3,000,000 / 16000 = 187.5 counts - 1 = 186
+    TC3->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
+                             TC_CTRLA_PRESCALER_DIV16 | 
+                             TC_CTRLA_WAVEGEN_MFRQ;
+    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+
+    TC3->COUNT16.CC[0].reg = 186; // Exactly 16 kHz interrupt frequency
+    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+
+    TC3->COUNT16.INTENSET.reg = TC_INTENSET_MC0;
+    
+    NVIC_SetPriority(TC3_IRQn, 2);
+    NVIC_EnableIRQ(TC3_IRQn);
+
+    TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
+    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
 }
 
 void AudioHandler::processAndSend(const int16_t* pcm_segment) {

@@ -32,7 +32,7 @@ namespace ProtocolCommands {
         float temperature;
         float vocIndex;
         float noxIndex;
-        uint16_t co2;
+        float co2;
     };
 
     // ADPCM Packet Structure (Matches Transmitter & Receiver)

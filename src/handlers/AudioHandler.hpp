@@ -40,6 +40,9 @@ public:
         static_cast<AudioHandler*>(context)->processAudio(*payload);
     }
 
+    void beginTimer();
+    
+
 private:
     void processAndSend(const int16_t* pcm_segment);
     void decodePacket(const ProtocolCommands::RadioAudioPacket* packet, int16_t* output_pcm);
