@@ -3,10 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-RobotHandler::RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, bool debug)
+RobotHandler::RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, CoSensor &coSensor, bool debug)
     : _scheduler(scheduler),
       _motor_driver(motor_driver),
       _sensor(sensor),
+      _coSensor(coSensor),
       _debug(debug) {}
 
 float RobotHandler::mapAroundNeutral(uint8_t value,
@@ -24,8 +25,8 @@ float RobotHandler::mapAroundNeutral(uint8_t value,
 void RobotHandler::processMotor(const ProtocolCommands::MotorPayload& payload){
     _motor_driver.set_PWM_1(payload.steer_duty);
     _motor_driver.set_PWM_2(payload.throttle_duty);
-    _motor_driver.set_PWM_3(payload.steer_duty);
-    _motor_driver.set_PWM_4(payload.steer_duty);
+    _motor_driver.setTurretPan(payload.turret_x_duty);
+    _motor_driver.setTurretTilt(payload.turret_y_duty);
 }
 
 void RobotHandler::onSensorTrigger(){
@@ -41,6 +42,8 @@ void RobotHandler::onSensorTrigger(){
         sen66_payload.pm10p0,
         sen66_payload.noxIndex
     );
+
+    sen66_payload.coRaw = _coSensor.readRaw();
 
     _scheduler.sendPacket(ProtocolCommands::NODE_CONTROLLER, ProtocolCommands::CMD_SENSORS, &sen66_payload, sizeof(sen66_payload));
 }

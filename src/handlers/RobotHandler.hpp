@@ -4,11 +4,12 @@
 #include "scheduler.h"
 #include <MotorDriver.h>                // Pulled from generic lib/
 #include <sensor.h>
+#include <CoSensor.h>
 #include "ProtocolCommands.h"
 
 class RobotHandler {
 public:
-    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, bool debug);
+    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, CoSensor &coSensor, bool debug);
 
     // Business logic processing routines called by the scheduler bridges
     void processMotor(const ProtocolCommands::MotorPayload& payload);
@@ -42,6 +43,7 @@ private:
     EventScheduler &_scheduler;
     MotorDriver &_motor_driver;
     Sen66_Sensor &_sensor;
+    CoSensor &_coSensor;
     bool _debug;
 
 };

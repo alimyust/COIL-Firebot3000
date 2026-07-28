@@ -29,7 +29,7 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     if (payload.pm2p5 != 0)       _last_pm2p5       = payload.pm2p5;
     if (payload.pm4p0 != 0)       _last_pm4p0       = payload.pm4p0;
     if (payload.pm10p0 != 0)      _last_pm10p0      = payload.pm10p0;
-
+    if (payload.coRaw > 0)         _last_coRaw       = payload.coRaw;
     // 2. Clear display and set styling
     _oled.display.clearDisplay();
     _oled.display.setTextSize(1);       // 6x8 pixels per character
@@ -81,10 +81,14 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     _oled.display.print("P4.0:");
     _oled.display.print(_last_pm4p0, 1);
 
-    // Line 5: PM10.0
+    // Line 5: PM10.0 & CO Raw
     _oled.display.setCursor(col1, 50);
     _oled.display.print("P10 :");
     _oled.display.print(_last_pm10p0, 1);
+
+    _oled.display.setCursor(col2, 50);
+    _oled.display.print("CO :");
+    _oled.display.print(_last_coRaw, 1);
 
     // Push frame buffer to display
     _oled.pushFrame();

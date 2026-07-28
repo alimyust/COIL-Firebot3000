@@ -2,6 +2,7 @@
 
 #include "QuadHWPwm.hpp"
 #include "Joystick.hpp"
+#include "TurretGearMap.h"
 
 // HRW values measured from the cars original controller
 namespace MotorConfig {
@@ -20,14 +21,16 @@ public:
     MotorDriver(bool debug = false)
         : 
         _pwm(9, 5, 6, 7), // 9 throttle, 5 steering, 6 servo1, 7 servo2 (I think?)
-        _debug(debug) {}
+        _debug(debug),
+        _turretPan(), //continuous servo, no gear ratio/angle range to configure
+        _turretTilt(0.0f, 60.0f, TiltServoConfig::SERVO_MAX_ANGLE_DEG) {}
     
     void init_motor(){
         _pwm.begin(60, 50); // 60Hz for motors, 50Hz for servos
         _pwm.setDutyCycle1(0);
         _pwm.setDutyCycle2(0);
-        _pwm.setDutyCycle3(0);
-        _pwm.setDutyCycle4(0);
+        _pwm.setDutyCycle3(_turretPan.computeDutyPercentFromJoystick(128));
+        _pwm.setDutyCycle4(_turretTilt.computeDutyPercent(30.0f));
     }
 
     void set_PWM_1(uint8_t duty) { // input duty is 0-255 from joystick
@@ -56,19 +59,21 @@ public:
         _pwm.setDutyCycle2(map_duty);
     }
 
-    void set_PWM_3(uint8_t duty) {
-        float map_duty = duty; 
-        _pwm.setDutyCycle3(map_duty);
+    //duty percent using the gear ratio math
+    void setTurretPan(uint8_t duty) {
+        _pwm.setDutyCycle3(_turretPan.computeDutyPercentFromJoystick(duty));
     }
-
-    void set_PWM_4(uint8_t duty) {
-        float map_duty = duty; 
-        _pwm.setDutyCycle4(map_duty);
+    void setTurretTilt(uint8_t duty) {
+        _pwm.setDutyCycle4(_turretTilt.computeDutyPercentFromJoystick(duty));
     }
+    float getTurretPanSpeedPercent() const { return _turretPan.getLastCommandedSpeedPercent(); }
+    float getTurretTiltAngle() const { return _turretTilt.getOutputAngle(); }
     
 private:
     QuadHardwarePWM _pwm;
     bool _debug;
+    ContinuousServoAxis _turretPan;
+    PositionalServoAxis _turretTilt;
 
     static float mapAroundNeutral(uint8_t value,
                               uint8_t in_min, uint8_t in_center, uint8_t in_max,
