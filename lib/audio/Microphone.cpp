@@ -1,6 +1,8 @@
 #include "Microphone.hpp"
 #include <Arduino.h>
 
+//sample block length at 64
+
 // ============================================================================
 // STATIC VARIABLE DEFINITIONS (This allocates the actual memory!)
 // ============================================================================
@@ -12,6 +14,7 @@ bool Microphone::adc_buffer_filled = false;
 // ============================================================================
 // MEMBER FUNCTION IMPLEMENTATIONS
 // ============================================================================
+
 
 Microphone::Microphone() {
     filling_first_half = true;
@@ -33,7 +36,8 @@ void Microphone::readActiveBuffer(int16_t* output_buffer) {
     if (!adc_buffer_filled || active_adc_buffer == nullptr) return;
 
     for (int i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
-        output_buffer[i] = ((int16_t)active_adc_buffer[i] - 2048) << 4;
+        int32_t val = (int32_t)active_adc_buffer[i] - 2048;
+        output_buffer[i] = (int16_t)(val << 4);
     }
     adc_buffer_filled = false;
 }

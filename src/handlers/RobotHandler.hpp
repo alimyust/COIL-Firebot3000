@@ -3,30 +3,31 @@
 
 #include "scheduler.h"
 #include <MotorDriver.h>                // Pulled from generic lib/
+#include <sensor.h>
 #include "ProtocolCommands.h"
 
 class RobotHandler {
 public:
-    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, bool debug);
+    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, bool debug);
 
     // Business logic processing routines called by the scheduler bridges
-    void processThrottle(const ProtocolCommands::ThrottlePayload& payload);
-    void processSteering(const ProtocolCommands::SteeringPayload& payload);
+    void processMotor(const ProtocolCommands::MotorPayload& payload);
     void handleDiagnostics();
     void processHeartbeat(const ProtocolCommands::HeartbeatPayload& payload);
-
+    void onSensorTrigger();
     // ========================================================================
     // UNIVERSAL SCHEDULER STATIC ROUTING BRIDGES
-    // ========================================================================
-    static void onThrottleReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::ThrottlePayload payload;
-        static_cast<RobotHandler*>(context)->processThrottle(payload);
+    // ===============  =========================================================
+    
+    static void onSensorUpdate(void* context) {
+        static_cast<RobotHandler*>(context)->onSensorTrigger();
     }
 
-    static void onSteeringReceived(const RadioComm::RF69_Packet& packet, void* context) {
-        ProtocolCommands::SteeringPayload payload;
-        static_cast<RobotHandler*>(context)->processSteering(payload);
+    static void onMotorReceived(const RadioComm::RF69_Packet& packet, void* context) {
+        ProtocolCommands::MotorPayload payload;
+        static_cast<RobotHandler*>(context)->processMotor(payload);
     }
+
 
     static void onHeartbeatReceived(const RadioComm::RF69_Packet& packet, void* context) {
         ProtocolCommands::HeartbeatPayload payload;
@@ -40,11 +41,9 @@ private:
 
     EventScheduler &_scheduler;
     MotorDriver &_motor_driver;
+    Sen66_Sensor &_sensor;
     bool _debug;
 
-    // Fully encapsulated internal system states
-    float _lastThrottleMap;
-    float _lastSteeringMap;
 };
 
 #endif // ROBOT_HANDLER_HPP

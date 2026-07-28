@@ -137,54 +137,7 @@ private:
     bool _debug_enabled = true;
 
     void printIncomingPayload(uint8_t command, const void* payload) {
-        switch (command) {
-            case ProtocolCommands::CMD_THROTTLE: {
-                const ProtocolCommands::ThrottlePayload* throttle = (const ProtocolCommands::ThrottlePayload*)payload;
-                Serial.print("Throttle Duty: ");
-                Serial.println(throttle->duty); 
-                break;
-            }
-            
-            case ProtocolCommands::CMD_STEERING: {
-                const ProtocolCommands::SteeringPayload* steering = (const ProtocolCommands::SteeringPayload*)payload;
-                Serial.print("Steering Duty: ");
-                Serial.println(steering->duty);
-                break;
-            }
-            
-            case ProtocolCommands::CMD_AUDIO: {
-                const ProtocolCommands::RadioAudioPacket* audio = (const ProtocolCommands::RadioAudioPacket*)payload;
-
-                Serial.print("AUD [Seq: ");
-                Serial.print(audio->sequence);
-                Serial.print(" | Pred: ");
-                Serial.print(audio->init_predicted);
-                Serial.print(" | StepIdx: ");
-                Serial.print(audio->init_step_index);
-                Serial.print(" | Hex: ");
-                
-                // Print out just the first 4 bytes of compressed data in hex to verify it's not flatlining
-                for (int i = 0; i < 4; i++) {
-                    if (audio->data[i] < 0x10) Serial.print("0"); // Leading zero padding
-                    Serial.print(audio->data[i], HEX);
-                    Serial.print(" ");
-                }
-                Serial.println("...]");
-                break;
-                break;
-            }
-            case ProtocolCommands::CMD_HB: {
-                const ProtocolCommands::HeartbeatPayload* hb = (const ProtocolCommands::HeartbeatPayload*)payload;
-                Serial.print("Heartbeat Timestamp: ");
-                Serial.println(hb->timestamp);
-                break;
-            }
-            default:
-                Serial.println("Unknown command, can't print structure.");
-                Serial.print("Command ID: ");
-                Serial.println(command, HEX);
-                break;
-        }
+        return;
     }
 
     void pushEvent(const SystemEvent& ev) {

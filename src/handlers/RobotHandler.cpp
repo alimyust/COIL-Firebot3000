@@ -3,12 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-RobotHandler::RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, bool debug)
+RobotHandler::RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, bool debug)
     : _scheduler(scheduler),
       _motor_driver(motor_driver),
-      _debug(debug),
-      _lastThrottleMap(0.0f),
-      _lastSteeringMap(0.0f) {}
+      _sensor(sensor),
+      _debug(debug) {}
 
 float RobotHandler::mapAroundNeutral(uint8_t value,
                                      uint8_t in_min, uint8_t in_center, uint8_t in_max,
@@ -22,31 +21,28 @@ float RobotHandler::mapAroundNeutral(uint8_t value,
     }
 }
 
-void RobotHandler::processThrottle(const ProtocolCommands::ThrottlePayload& payload) {
-    
-    _lastThrottleMap = mapAroundNeutral(payload.duty,
-        JoystickConfig::JOY_MIN,
-        JoystickConfig::JOY_CENTER,
-        JoystickConfig::JOY_MAX,
-        MotorConfig::THROTTLE_MIN,
-        MotorConfig::NEUTRAL_THROTTLE,
-        MotorConfig::THROTTLE_MAX);
-
-    _motor_driver.setThrottle(_lastThrottleMap);
+void RobotHandler::processMotor(const ProtocolCommands::MotorPayload& payload){
+    _motor_driver.set_PWM_1(payload.steer_duty);
+    _motor_driver.set_PWM_2(payload.throttle_duty);
+    _motor_driver.set_PWM_3(payload.steer_duty);
+    _motor_driver.set_PWM_4(payload.steer_duty);
 }
 
-void RobotHandler::processSteering(const ProtocolCommands::SteeringPayload& payload) {
+void RobotHandler::onSensorTrigger(){
+    ProtocolCommands::SensorPayload sen66_payload = {};
+    _sensor.readData(
+        sen66_payload.co2, 
+        sen66_payload.vocIndex, 
+        sen66_payload.temperature, 
+        sen66_payload.humidity, 
+        sen66_payload.pm1p0, 
+        sen66_payload.pm2p5, 
+        sen66_payload.pm4p0,
+        sen66_payload.pm10p0,
+        sen66_payload.noxIndex
+    );
 
-    _lastSteeringMap = mapAroundNeutral(payload.duty,
-        JoystickConfig::JOY_MIN,
-        JoystickConfig::JOY_CENTER,
-        JoystickConfig::JOY_MAX,
-        MotorConfig::STEERING_MIN,
-        MotorConfig::NEUTRAL_STEERING,
-        MotorConfig::STEERING_MAX);
-
-    _motor_driver.setSteeringDuty(_lastSteeringMap);
-
+    _scheduler.sendPacket(ProtocolCommands::NODE_CONTROLLER, ProtocolCommands::CMD_SENSORS, &sen66_payload, sizeof(sen66_payload));
 }
 
 void RobotHandler::processHeartbeat(const ProtocolCommands::HeartbeatPayload& payload) {

@@ -30,7 +30,7 @@ public:
         _pwm.setDutyCycle4(0);
     }
 
-    void setThrottle(uint8_t duty) { // input duty is 0-255 from joystick
+    void set_PWM_1(uint8_t duty) { // input duty is 0-255 from joystick
         float map_duty = mapAroundNeutral(duty,
             JoystickConfig::JOY_MIN,
             JoystickConfig::JOY_CENTER,
@@ -43,7 +43,7 @@ public:
         _pwm.setDutyCycle1(map_duty);//output is mapped to 7-11 for throttle control with float precision
     }
 
-    void setSteeringDuty(uint8_t duty) {
+    void set_PWM_2(uint8_t duty) {
     float map_duty = mapAroundNeutral(duty,
         JoystickConfig::JOY_MIN,
         JoystickConfig::JOY_CENTER,
@@ -56,7 +56,16 @@ public:
         _pwm.setDutyCycle2(map_duty);
     }
 
+    void set_PWM_3(uint8_t duty) {
+        float map_duty = duty; 
+        _pwm.setDutyCycle3(map_duty);
+    }
 
+    void set_PWM_4(uint8_t duty) {
+        float map_duty = duty; 
+        _pwm.setDutyCycle4(map_duty);
+    }
+    
 private:
     QuadHardwarePWM _pwm;
     bool _debug;

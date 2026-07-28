@@ -15,12 +15,13 @@
 
 RadioComm radio(2, 434.0, 8, 3, 4); // Node 2 (Controller)
 EventScheduler scheduler(radio, false);
-Joystick joystick;
+Joystick joystick_motor;
+Joystick joystick_turret;
 Microphone mic;
 Speaker speaker;
 DisplayOLED oled(true);
 
-ControllerHandler handler(scheduler, joystick, oled, true);
+ControllerHandler controller_handler(scheduler, joystick_motor, joystick_turret, oled, true);
 AudioHandler audioHandler(scheduler, mic,speaker, true);
 
 void setup() {
@@ -34,18 +35,18 @@ void setup() {
 
     // scheduler.addPeriodicTask(20, EventPriority::PRIORITY_MEDIUM, ControllerHandler::onJoystickUpdate, &handler);
     // scheduler.addPeriodicTask(1, EventPriority::PRIORITY_HIGH, AudioHandler::onAudioUpdate, &audioHandler); 
-    scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_HIGH,
-         ControllerHandler::onHeartbeat, &handler);
+    // scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_HIGH,
+    //      ControllerHandler::onHeartbeat, &handler);
     // scheduler.addPeriodicTask(2, EventPriority::PRIORITY_HIGH,
     //      ControllerHandler::onOLED, &handler);
-
+    scheduler.registerPacketHandler(ProtocolCommands::CMD_SENSORS, EventPriority::PRIORITY_LOW, ControllerHandler::onSensorReceived, &controller_handler);
     Serial.println("Controller Setup Complete");
 
 }
 void loop() {
     radio.update();
     scheduler.update();
-    oled.pushFrame();
+    // oled.pushFrame();
     oled.update();          // Prevent unintended wrapping
     // oled.display.clearDisplay();
     // oled.display.setCursor(0,2);

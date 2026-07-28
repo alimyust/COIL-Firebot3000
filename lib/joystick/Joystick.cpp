@@ -4,7 +4,7 @@ void Joystick::init_joystick() {
     pinMode(joyXPin, INPUT);
     pinMode(joyYPin, INPUT);
 }
-
+// outX JoyX, outY JoyY
 void Joystick::update_joystick(int &outX, int &outY) {
 
 

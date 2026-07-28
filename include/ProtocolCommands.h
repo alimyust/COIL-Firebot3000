@@ -10,20 +10,17 @@ namespace ProtocolCommands {
     };
 
     enum CommandId : uint8_t {
-        CMD_THROTTLE = 0x01,
-        CMD_STEERING = 0x02,
-        CMD_SENSORS = 0x03,
-        CMD_AUDIO = 0x04,
-        CMD_HB = 0x05,
-        CMD_DISPLAY = 0x06
+        CMD_MOTOR = 0x01, // encapsulates throttle, steering, turretX, turretY
+        CMD_SENSORS = 0x02, // All sensor payloads and CO sensor (not implemented yet)
+        CMD_AUDIO = 0x03,  // All audio packets
+        CMD_HB = 0x04,  // Basic heartbeat (shouold be all telemetry)
     };
 
-    struct ThrottlePayload {
-        uint8_t duty;
-    };
-
-    struct SteeringPayload {
-        uint8_t duty;
+    struct MotorPayload {
+        uint8_t throttle_duty;
+        uint8_t steer_duty;
+        uint8_t turret_x_duty;
+        uint8_t turret_y_duty;
     };
 
     struct SensorPayload {
@@ -35,8 +32,8 @@ namespace ProtocolCommands {
         float temperature;
         float vocIndex;
         float noxIndex;
+        uint16_t co2;
     };
-    
 
     // ADPCM Packet Structure (Matches Transmitter & Receiver)
     struct __attribute__((packed))RadioAudioPacket {
