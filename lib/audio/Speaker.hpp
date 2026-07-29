@@ -3,23 +3,28 @@
 
 #include <Arduino.h>
 
+#define SPEAKER_BUFFER_SIZE 256 // Big enough to hold a few 64-sample blocks
+
 class Speaker {
 public:
-    Speaker(uint8_t dac_pin = A0);
+    Speaker();
     void begin();
     
-    // Inline direct register write for speed inside ISR
-    inline void writeRawDAC(uint16_t dac_val) {
-        // Wait for DAC to be ready
-        while (DAC->STATUS.bit.SYNCBUSY);
-        // Write 10-bit value directly to DAC DATABUF register
-        DAC->DATABUF.reg = dac_val & 0x03FF;
-    }
+    // Pushes sample into the buffer (called by AudioHandler)
+    bool queueAudio(int16_t pcm_sample);
+    
+    // Pops sample from buffer to DAC (called by the Timer ISR)
+    void isr_playNextSample();
 
-    void write(int16_t pcm_sample);
+    static Speaker* instance; // Singleton pointer for the C-style ISR
 
 private:
-    uint8_t _dac_pin;
+    uint8_t _dac_pin = A0;
+    
+    volatile int16_t _buffer[SPEAKER_BUFFER_SIZE];
+    volatile uint16_t _head;
+    volatile uint16_t _tail;
+    volatile uint16_t _count;
 };
 
-#endif
+#endif // SPEAKER_HPP

@@ -104,7 +104,7 @@ private:
 
     // State Tracking Flags
     bool _tx_in_progress;
-    bool _debug_enabled = false;
+    bool _debug_enabled = true;
     int16_t _last_rssi;
 
     // Software Circular Ring Buffer Mechanics
