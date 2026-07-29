@@ -7,7 +7,7 @@
 // HRW values measured from the cars original controller
 namespace MotorConfig {
     static constexpr float NEUTRAL_THROTTLE = 9.00f;
-    static constexpr float NEUTRAL_STEERING = 8.30f;
+    static constexpr float NEUTRAL_STEERING = 7.30f;
 
     static constexpr float THROTTLE_MIN = 7.0f;
     static constexpr float THROTTLE_MAX = 11.0f;
