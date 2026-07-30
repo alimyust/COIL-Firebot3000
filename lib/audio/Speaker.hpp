@@ -3,13 +3,13 @@
 
 #include <Arduino.h>
 
-#define SPEAKER_BUFFER_SIZE 256 // Big enough to hold a few 64-sample blocks
+#define SPEAKER_BUFFER_SIZE 512 // Big enough to hold a few 64-sample blocks
 
 class Speaker {
 public:
     Speaker();
     void begin();
-    
+    void beginTimer();
     // Pushes sample into the buffer (called by AudioHandler)
     bool queueAudio(int16_t pcm_sample);
     
