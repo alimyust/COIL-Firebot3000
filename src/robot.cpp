@@ -26,11 +26,12 @@ AudioHandler audioHandler(scheduler, mic, speaker, false); // Initialize AudioHa
 
 void setup() {
     Serial.begin(115200);
-    // while(!Serial);
+    while(!Serial);
+    
     radio.begin(); 
     // motorDriver.init_motor();
     // sensor.begin();
-    audioHandler.beginTimer();
+    // audioHandler.beginTimer();
     speaker.begin();
     // scheduler.registerPacketHandler(ProtocolCommands::CMD_MOTOR, EventPriority::PRIORITY_HIGH, RobotHandler::onMotorReceived, &robotHandler);
     scheduler.registerPacketHandler(ProtocolCommands::CMD_AUDIO, EventPriority::PRIORITY_CRITICAL, AudioHandler::onAudioPacketReceived, &audioHandler);
@@ -41,6 +42,7 @@ void setup() {
 void loop() {
     radio.update();
     scheduler.update();
+
     // static unsigned long lastPrintTime = 0;
     // constexpr unsigned long PRINT_INTERVAL = 1000;
 

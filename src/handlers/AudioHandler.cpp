@@ -101,36 +101,36 @@ void AudioHandler::processAndSend(const int16_t* pcm_segment) {
 }
 
 
-void AudioHandler::beginTimer() {
-    // Enable GCLK1/GCLK0 for TC3
-    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
-                        GCLK_CLKCTRL_GEN_GCLK0 | 
-                        GCLK_CLKCTRL_ID_TCC2_TC3;
-    while (GCLK->STATUS.bit.SYNCBUSY);
+// void AudioHandler::beginTimer() {
+//     // Enable GCLK1/GCLK0 for TC3
+//     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
+//                         GCLK_CLKCTRL_GEN_GCLK0 | 
+//                         GCLK_CLKCTRL_ID_TCC2_TC3;
+//     while (GCLK->STATUS.bit.SYNCBUSY);
 
-    TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
-    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+//     TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
+//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
 
-    // 48 MHz / 16 = 3 MHz clock
-    // Target: 8000 Hz -> 3,000,000 / 8000 = 375 counts. Period is CC0 + 1, so CC0 = 374
-    TC3->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
-                             TC_CTRLA_PRESCALER_DIV16 | 
-                             TC_CTRLA_WAVEGEN_MFRQ;
-    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+//     // 48 MHz / 16 = 3 MHz clock
+//     // Target: 8000 Hz -> 3,000,000 / 8000 = 375 counts. Period is CC0 + 1, so CC0 = 374
+//     TC3->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
+//                              TC_CTRLA_PRESCALER_DIV16 | 
+//                              TC_CTRLA_WAVEGEN_MFRQ;
+//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
 
-    // CHANGED: 374 for 8 kHz output timing (125 us)
-    TC3->COUNT16.CC[0].reg = 374; 
-    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+//     // CHANGED: 374 for 8 kHz output timing (125 us)
+//     TC3->COUNT16.CC[0].reg = 374; 
+//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
 
-    TC3->COUNT16.INTENSET.reg = TC_INTENSET_MC0;
+//     TC3->COUNT16.INTENSET.reg = TC_INTENSET_MC0;
     
-    // Give DAC playback highest priority to prevent audio jitter
-    NVIC_SetPriority(TC3_IRQn, 1);
-    NVIC_EnableIRQ(TC3_IRQn);
+//     // Give DAC playback highest priority to prevent audio jitter
+//     NVIC_SetPriority(TC3_IRQn, 1);
+//     NVIC_EnableIRQ(TC3_IRQn);
 
-    TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
-    while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-}
+//     TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
+//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
+// }
 
 void AudioHandler::processAudio(const ProtocolCommands::RadioAudioPacket& payload) {
     if (_debug_enabled) Serial.println("queue audio");
@@ -142,8 +142,10 @@ void AudioHandler::processAudio(const ProtocolCommands::RadioAudioPacket& payloa
     decodePacket(&payload, decompressed_pcm);
     // CHANGED: Queue samples rapidly. The TC3 ISR will play them back at exactly 8 kHz
     for (size_t i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
-        _speaker.queueAudio(decompressed_pcm[i]);
-    }
+    if (!_speaker.queueAudio(decompressed_pcm[i])) {
+            Serial.println("BUFFER OVERFLOW: Dropped sample!");
+        }   
+     }
 }
 
 // ... [Keep your decodePacket, encodeSample, decodeSample identical] ...
@@ -235,14 +237,14 @@ int16_t AudioHandler::decodeSample(uint8_t nibble) {
 // ============================================================================
 // HARDWARE TIMER INTERRUPT (Global Scope)
 // ============================================================================
-extern "C" void TC3_Handler() {
-    // Clear the Match 0 interrupt flag
-    if (TC3->COUNT16.INTFLAG.bit.MC0) {
-        TC3->COUNT16.INTFLAG.bit.MC0 = 1; 
+// extern "C" void TC3_Handler() {
+//     // Clear the Match 0 interrupt flag
+//     if (TC3->COUNT16.INTFLAG.bit.MC0) {
+//         TC3->COUNT16.INTFLAG.bit.MC0 = 1; 
         
-        // Output one sample to the DAC
-        if (Speaker::instance) {
-            Speaker::instance->isr_playNextSample();
-        }
-    }
-}
+//         // Output one sample to the DAC
+//         if (Speaker::instance) {
+//             Speaker::instance->isr_playNextSample();
+//         }
+//     }
+// }

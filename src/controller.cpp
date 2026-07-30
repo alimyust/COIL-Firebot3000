@@ -27,7 +27,7 @@ AudioHandler audioHandler(scheduler, mic,speaker, false);
 void setup() {
 
     Serial.begin(115200);
-    // while(!Serial);
+    while(!Serial);
 
     radio.begin();
     // joystick_motor.init_joystick();
@@ -36,7 +36,7 @@ void setup() {
     mic.begin();
 
     // scheduler.addPeriodicTask(500, EventPriority::PRIORITY_MEDIUM, ControllerHandler::onJoystickUpdate, &controller_handler);
-    scheduler.addPeriodicTask(50, EventPriority::PRIORITY_HIGH, AudioHandler::onAudioUpdate, &audioHandler); 
+    // scheduler.addPeriodicTask(1, EventPriority::PRIORITY_HIGH, AudioHandler::onAudioUpdate, &audioHandler); 
     // scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_LOW, ControllerHandler::onHeartbeat, &controller_handler);
 
     // scheduler.registerPacketHandler(ProtocolCommands::CMD_SENSORS, EventPriority::PRIORITY_MEDIUM, ControllerHandler::onSensorReceived, &controller_handler);
@@ -45,16 +45,17 @@ void setup() {
 }
 void loop() {
     radio.update();
+    audioHandler.onAudioTrigger();
     scheduler.update();
-    static unsigned long lastPrintTime = 0;
-    constexpr unsigned long PRINT_INTERVAL = 1000;
+    // static unsigned long lastPrintTime = 0;
+    // constexpr unsigned long PRINT_INTERVAL = 1000;
 
-    unsigned long currentTime = millis();
+    // unsigned long currentTime = millis();
 
-    if (currentTime - lastPrintTime >= PRINT_INTERVAL) {
-        lastPrintTime = currentTime;
-        Serial.println("Controller Loop Alive");
-    }
+    // if (currentTime - lastPrintTime >= PRINT_INTERVAL) {
+    //     lastPrintTime = currentTime;
+    //     Serial.println("Controller Loop Alive");
+    // }
 
     // oled.update();      
 }

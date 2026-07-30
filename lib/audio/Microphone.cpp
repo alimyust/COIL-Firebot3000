@@ -54,10 +54,60 @@ void Microphone::adc_init() {
     ADC->AVGCTRL.reg = 0;
     ADC->SAMPCTRL.reg = 2;
     ADCsync();
-    ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV32 | ADC_CTRLB_FREERUN | ADC_CTRLB_RESSEL_12BIT;
+    // 1. DIV32 prescaler (1.5 MHz ADC clock for fast conversion)
+    // 2. NO FREERUN MODE!
+    ADC->CTRLB.reg = ADC_CTRLB_PRESCALER_DIV32 | ADC_CTRLB_RESSEL_12BIT;
     ADCsync();
+
+    // Enable Start Conversion on Event Input
+    ADC->EVCTRL.bit.STARTEI = 1; 
+    ADCsync();
+
     ADC->CTRLA.bit.ENABLE = 1;
     ADCsync();
+
+    // Start TC4 to generate the 8 kHz event stream
+    beginAdcTimer();
+}
+
+void Microphone::beginAdcTimer() {
+    // 1. Enable GCLK0 (48 MHz) for TC4/TC5
+    GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
+                        GCLK_CLKCTRL_GEN_GCLK0 | 
+                        GCLK_CLKCTRL_ID_TC4_TC5;
+    while (GCLK->STATUS.bit.SYNCBUSY);
+
+    // 2. Disable TC4
+    TC4->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
+    while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
+
+    // 3. 48 MHz / 16 prescaler = 3 MHz clock
+    TC4->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
+                             TC_CTRLA_PRESCALER_DIV16 | 
+                             TC_CTRLA_WAVEGEN_MFRQ;
+    while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
+
+    // 3,000,000 / 8,000 Hz = 375 ticks (CC0 = 374)
+    TC4->COUNT16.CC[0].reg = 374; 
+    while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
+
+    // Enable Event Output on Match (No CPU Interrupt needed!)
+    TC4->COUNT16.EVCTRL.reg = TC_EVCTRL_MCEO0;
+
+    // 4. Connect TC4 Match Event -> EVSYS Channel 0 -> ADC STARTEI
+    PM->APBCMASK.reg |= PM_APBCMASK_EVSYS; // Enable EVSYS bus clock
+    
+    // Wire EVSYS User ADC_START to Channel 0
+    EVSYS->USER.reg = EVSYS_USER_CHANNEL(1) | EVSYS_USER_USER(EVSYS_ID_USER_ADC_START);
+    
+    // Set Channel 0 generator to TC4 MCX0 (Match 0)
+// Set Channel 0 generator to TC4 Match 0 (Notice the underscore: MC_0)
+    EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL(0) | 
+                        EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_TC4_MCX_0) | 
+                        EVSYS_CHANNEL_PATH_ASYNCHRONOUS;
+    // 5. Enable TC4
+    TC4->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
+    while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
 }
 
 void Microphone::dma_init() {

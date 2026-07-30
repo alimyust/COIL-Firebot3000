@@ -14,6 +14,7 @@ class Microphone {
         void readActiveBuffer(int16_t* output_buffer);
         void adc_init();
         void dma_init();
+        void beginAdcTimer(); // <--- Add this method declaration
 
     private:
         Adafruit_ZeroDMA ADC_DMA;

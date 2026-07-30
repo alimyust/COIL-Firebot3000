@@ -11,7 +11,7 @@ void Speaker::begin() {
     // Configure DAC Pin (A0 / PA02)
     analogWrite(_dac_pin, 512); 
     
-    // Disable DAC to modify control register safely
+    // Disable DAC to modify control register safelys
     DAC->CTRLA.bit.ENABLE = 0;
     while (DAC->STATUS.bit.SYNCBUSY);
 
