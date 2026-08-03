@@ -35,13 +35,11 @@ namespace ProtocolCommands {
         float co2;
     };
 
-    // ADPCM Packet Structure (Matches Transmitter & Receiver)
-    struct __attribute__((packed))RadioAudioPacket {
-        uint16_t sequence;        // 2 bytes
-        int16_t init_predicted;   // 2 bytes
-        int8_t init_step_index;   // 1 byte
-        uint8_t data[32];         // 32 bytes (holds 32 compressed samples)
-    };  
+// G.711 u-law Audio Packet Structure
+    struct __attribute__((packed)) RadioAudioPacket {
+        uint16_t sequence;        // 2 bytes: sequence counter for loss tracking
+        uint8_t data[32];         // 35 bytes: 35 u-law encoded audio samples (1 byte/sample)
+    };
 
     struct HeartbeatPayload {
         uint32_t timestamp;

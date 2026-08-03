@@ -170,8 +170,8 @@ private:
 
             Serial.println(F("=== Audio Payload ==="));
             Serial.print(F("Sequence: "));       Serial.println(p->sequence);
-            Serial.print(F("Initial Predicted: ")); Serial.println(p->init_predicted);
-            Serial.print(F("Initial Step Index: ")); Serial.println(p->init_step_index);
+            // Serial.print(F("Initial Predicted: ")); Serial.println(p->init_predicted);
+            // Serial.print(F("Initial Step Index: ")); Serial.println(p->init_step_index);
 
             Serial.print(F("Compressed Data: "));
             for (uint8_t i = 0; i < sizeof(p->data); i++) {

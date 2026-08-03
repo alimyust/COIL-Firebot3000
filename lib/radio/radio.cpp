@@ -5,7 +5,7 @@ RadioComm::RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
                      uint8_t int_pin, uint8_t rst_pin)
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
      _int_pin(int_pin), _rst_pin(rst_pin), _tx_in_progress(false),
-    _debug_enabled(false), _last_rssi(0),
+    _debug_enabled(true), _last_rssi(0),
     _rx_head(0), _rx_tail(0), _rx_count(0),
     _tx_head(0), _tx_tail(0), _tx_count(0) {}
 
@@ -51,12 +51,11 @@ bool RadioComm::begin(const uint8_t* sync_words, const char* encryption_key) {
     _tx_in_progress = false;
     _radio.setModeRx();
 
-    if (_debug_enabled) {
-        Serial.println("Radio initialized successfully");
-        Serial.print("Node ID: "); Serial.println(_node_id);
-        Serial.print("Frequency: "); Serial.print(_frequency); Serial.println(" MHz");
-        Serial.print("Interrupt Hooked internally to pin: "); Serial.println(_int_pin);
-    }
+    Serial.println("Radio initialized successfully");
+    Serial.print("Node ID: "); Serial.println(_node_id);
+    Serial.print("Frequency: "); Serial.print(_frequency); Serial.println(" MHz");
+    Serial.print("Interrupt Hooked internally to pin: "); Serial.println(_int_pin);
+
 
     return true;
 }
@@ -95,7 +94,7 @@ void RadioComm::update() {
     // Stage A: Handle Asynchronous Transmit State Machines
     // RadioHead's internal hardware ISR automatically shifts driver mode out of 
     // RHModeTx into RHModeIdle the exact microsecond the physical transmission completes.
-    // _debug_enabled = true;
+    _debug_enabled = true;
     if (_tx_in_progress && _radio.mode() != RHGenericDriver::RHModeTx) {
         _radio.setModeRx(); // Re-arm local receiver circuits to listen for packets
         _tx_in_progress = false;

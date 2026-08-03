@@ -1,23 +1,6 @@
 #include "AudioHandler.hpp"
 
 // ============================================================================
-// ADPCM STATIC LOOKUP TABLES
-// ============================================================================
-static const int16_t STEP_TABLE[89] = {
-    7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 19, 21, 23, 25, 28, 31, 34, 37, 41, 45,
-    50, 55, 60, 66, 73, 80, 88, 97, 107, 118, 130, 143, 157, 173, 190, 209, 230,
-    253, 279, 307, 337, 371, 408, 449, 494, 544, 598, 658, 724, 796, 876, 963,
-    1060, 1166, 1282, 1411, 1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024, 3327,
-    3660, 4026, 4428, 4871, 5358, 5894, 6484, 7132, 7845, 8630, 9493, 10442, 11487,
-    12635, 13899, 15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794, 32767
-};
-
-static const int8_t INDEX_TABLE[16] = {
-    -1, -1, -1, -1, 2, 4, 6, 8,
-    -1, -1, -1, -1, 2, 4, 6, 8
-};
-
-// ============================================================================
 // CONSTRUCTOR
 // ============================================================================
 AudioHandler::AudioHandler(EventScheduler &scheduler, Microphone &mic, Speaker &speaker, bool debug_enabled)
@@ -25,11 +8,7 @@ AudioHandler::AudioHandler(EventScheduler &scheduler, Microphone &mic, Speaker &
       _mic(mic), 
       _speaker(speaker), 
       _debug_enabled(debug_enabled),
-      _encoder_predicted(0), 
-      _encoder_step(0), 
       _global_sequence(0),
-      _decoder_predicted(0), 
-      _decoder_step(0), 
       _last_rx_sequence(0) {}
 
 // ============================================================================
@@ -41,210 +20,94 @@ void AudioHandler::onAudioTrigger() {
     }
     int16_t pcm_buffer[SAMPLE_BLOCK_LENGTH];
     _mic.readActiveBuffer(pcm_buffer);
-    // if (_debug_enabled) {
-    //     Serial.println("Audio Triggered");
-    // }
     processAndSend(&pcm_buffer[0]);
-    // processAndSend(&pcm_buffer[SAMPLE_BLOCK_LENGTH / 2]);
 }
-
-// void AudioHandler::beginTimer() {
-//     // Enable GCLK1/GCLK0 for TC3
-//     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
-//                         GCLK_CLKCTRL_GEN_GCLK0 | 
-//                         GCLK_CLKCTRL_ID_TCC2_TC3;
-//     while (GCLK->STATUS.bit.SYNCBUSY);
-
-//     TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     // 48 MHz / 16 = 3 MHz clock
-//     // Target: 16000 Hz -> 3,000,000 / 16000 = 187.5 counts - 1 = 186
-//     TC3->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
-//                              TC_CTRLA_PRESCALER_DIV16 | 
-//                              TC_CTRLA_WAVEGEN_MFRQ;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     TC3->COUNT16.CC[0].reg = 186; // Exactly 16 kHz interrupt frequency
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     TC3->COUNT16.INTENSET.reg = TC_INTENSET_MC0;
-    
-//     NVIC_SetPriority(TC3_IRQn, 2);
-//     NVIC_EnableIRQ(TC3_IRQn);
-
-//     TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-// }
 
 void AudioHandler::processAndSend(const int16_t* pcm_segment) {
     ProtocolCommands::RadioAudioPacket packet;
     packet.sequence = _global_sequence++;
-    packet.init_predicted = _encoder_predicted;
-    packet.init_step_index = _encoder_step;
 
-    size_t sample_idx = 0;   // V runs 32 times to pack 64 bytes into 32 bytes (1+1 nibbles per iteration)
-    for (size_t i = 0; i < SAMPLE_BLOCK_LENGTH/2; i++) {
-        uint8_t nibble1 = encodeSample(pcm_segment[sample_idx++]);
-        uint8_t nibble2 = encodeSample(pcm_segment[sample_idx++]);
-        packet.data[i] = (nibble1 << 4) | (nibble2 & 0x0F);
+    // Standard u-law is 8 bits per sample (1 byte per sample).
+    // Iterates across the block to encode samples into 8-bit u-law bytes.
+    const size_t num_samples = SAMPLE_BLOCK_LENGTH / 2; 
+    for (size_t i = 0; i < num_samples; i++) {
+        packet.data[i] = encodeSample(pcm_segment[i]);
     }
+
     if (_debug_enabled) {
         Serial.print("Sending Audio Packet: Seq=");
-        Serial.print(packet.sequence);
-        Serial.print(", InitPredicted=");
-        Serial.print(packet.init_predicted);
-        Serial.print(", InitStep=");
-        Serial.println(packet.init_step_index);
+        Serial.println(packet.sequence);
     }
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_AUDIO, &packet, sizeof(ProtocolCommands::RadioAudioPacket));
 }
 
-
-// void AudioHandler::beginTimer() {
-//     // Enable GCLK1/GCLK0 for TC3
-//     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | 
-//                         GCLK_CLKCTRL_GEN_GCLK0 | 
-//                         GCLK_CLKCTRL_ID_TCC2_TC3;
-//     while (GCLK->STATUS.bit.SYNCBUSY);
-
-//     TC3->COUNT16.CTRLA.reg &= ~TC_CTRLA_ENABLE;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     // 48 MHz / 16 = 3 MHz clock
-//     // Target: 8000 Hz -> 3,000,000 / 8000 = 375 counts. Period is CC0 + 1, so CC0 = 374
-//     TC3->COUNT16.CTRLA.reg = TC_CTRLA_MODE_COUNT16 | 
-//                              TC_CTRLA_PRESCALER_DIV16 | 
-//                              TC_CTRLA_WAVEGEN_MFRQ;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     // CHANGED: 374 for 8 kHz output timing (125 us)
-//     TC3->COUNT16.CC[0].reg = 374; 
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-
-//     TC3->COUNT16.INTENSET.reg = TC_INTENSET_MC0;
-    
-//     // Give DAC playback highest priority to prevent audio jitter
-//     NVIC_SetPriority(TC3_IRQn, 1);
-//     NVIC_EnableIRQ(TC3_IRQn);
-
-//     TC3->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
-//     while (TC3->COUNT16.STATUS.bit.SYNCBUSY);
-// }
-
+// ============================================================================
+// RECEIVE PATH (RX)
+// ============================================================================
 void AudioHandler::processAudio(const ProtocolCommands::RadioAudioPacket& payload) {
-    if (_debug_enabled) Serial.println("queue audio");
+    // if (_debug_enabled) Serial.println("queue audio");
     _last_rx_sequence = payload.sequence;
-    _decoder_predicted = payload.init_predicted;
-    _decoder_step = payload.init_step_index;
 
     int16_t decompressed_pcm[SAMPLE_BLOCK_LENGTH];
     decodePacket(&payload, decompressed_pcm);
-    // CHANGED: Queue samples rapidly. The TC3 ISR will play them back at exactly 8 kHz
-    for (size_t i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
-    if (!_speaker.queueAudio(decompressed_pcm[i])) {
+
+    const size_t num_samples = SAMPLE_BLOCK_LENGTH / 2;
+    for (size_t i = 0; i < num_samples; i++) {
+        if (!_speaker.queueAudio(decompressed_pcm[i])) {
             Serial.println("BUFFER OVERFLOW: Dropped sample!");
         }   
-     }
+    }
 }
-
-// ... [Keep your decodePacket, encodeSample, decodeSample identical] ...
-
 
 void AudioHandler::decodePacket(const ProtocolCommands::RadioAudioPacket* packet, int16_t* output_pcm) {
-    size_t out_idx = 0;
-    const size_t iterations = SAMPLE_BLOCK_LENGTH / 2;
-
-    for (size_t i = 0; i < iterations; i++) {
-        uint8_t byte = packet->data[i];
-        output_pcm[out_idx++] = decodeSample((byte >> 4) & 0x0F);
-        output_pcm[out_idx++] = decodeSample(byte & 0x0F);
+    const size_t num_samples = SAMPLE_BLOCK_LENGTH;
+    for (size_t i = 0; i < num_samples; i++) {
+        output_pcm[i] = decodeSample(packet->data[i]);
     }
 }
 
 // ============================================================================
-// MATHEMATICAL ADPCM CODEC ALGORITHMS
+// G.711 u-LAW CODEC ALGORITHMS
 // ============================================================================
+#define BIAS 0x84 // 132 bias for u-law conversion
+#define CLIP 32635
+
 uint8_t AudioHandler::encodeSample(int16_t sample) {
-    int32_t predicted = _encoder_predicted;
-    int32_t step = STEP_TABLE[_encoder_step];
-    int32_t diff = sample - predicted;
-    
-    uint8_t nibble = 0;
-    if (diff < 0) {
-        nibble = 8;
-        diff = -diff;
+    uint16_t sign = (sample < 0) ? 0x80 : 0x00;
+    if (sample < 0) {
+        sample = -sample;
     }
-    
-    int32_t temp_step = step;
-    if (diff >= temp_step) {
-        nibble |= 4;
-        diff -= temp_step;
+    if (sample > CLIP) {
+        sample = CLIP;
     }
-    temp_step >>= 1;
-    if (diff >= temp_step) {
-        nibble |= 2;
-        diff -= temp_step;
+
+    sample += BIAS;
+
+    uint8_t exponent = 7;
+    for (int exp_mask = 0x4000; exp_mask > 0; exp_mask >>= 1) {
+        if (sample & exp_mask) {
+            break;
+        }
+        exponent--;
     }
-    temp_step >>= 1;
-    if (diff >= temp_step) {
-        nibble |= 1;
-    }
+
+    uint8_t mantissa = (sample >> (exponent + 3)) & 0x0F;
+    uint8_t ulaw_byte = ~(sign | (exponent << 4) | mantissa);
     
-    int32_t diffq = step >> 3;
-    if (nibble & 4) diffq += step;
-    if (nibble & 2) diffq += (step >> 1);
-    if (nibble & 1) diffq += (step >> 2);
-    
-    if (nibble & 8) _encoder_predicted -= diffq;
-    else _encoder_predicted += diffq;
-    
-    if (_encoder_predicted > 32767) _encoder_predicted = 32767;
-    else if (_encoder_predicted < -32768) _encoder_predicted = -32768;
-    
-    _encoder_step += INDEX_TABLE[nibble];
-    if (_encoder_step < 0) _encoder_step = 0;
-    else if (_encoder_step > 88) _encoder_step = 88;
-    
-    _encoder_predicted = (int16_t)_encoder_predicted;
-    return nibble;
+    return ulaw_byte;
 }
 
-int16_t AudioHandler::decodeSample(uint8_t nibble) {
-    int32_t step = STEP_TABLE[_decoder_step];
-    
-    int32_t diffq = step >> 3;
-    if (nibble & 4) diffq += step;
-    if (nibble & 2) diffq += (step >> 1);
-    if (nibble & 1) diffq += (step >> 2);
-    
-    if (nibble & 8) {
-        _decoder_predicted -= diffq;
-    } else {
-        _decoder_predicted += diffq;
-    }
-    
-    if (_decoder_predicted > 32767) _decoder_predicted = 32767;
-    else if (_decoder_predicted < -32768) _decoder_predicted = -32768;
-    
-    _decoder_step += INDEX_TABLE[nibble];
-    if (_decoder_step < 0) _decoder_step = 0;
-    else if (_decoder_step > 88) _decoder_step = 88;
-    
-    return (int16_t)_decoder_predicted;
-}
+int16_t AudioHandler::decodeSample(uint8_t ulaw_byte) {
+    // Invert all bits according to standard G.711 u-law spec
+    ulaw_byte = ~ulaw_byte;
 
-// ============================================================================
-// HARDWARE TIMER INTERRUPT (Global Scope)
-// ============================================================================
-// extern "C" void TC3_Handler() {
-//     // Clear the Match 0 interrupt flag
-//     if (TC3->COUNT16.INTFLAG.bit.MC0) {
-//         TC3->COUNT16.INTFLAG.bit.MC0 = 1; 
-        
-//         // Output one sample to the DAC
-//         if (Speaker::instance) {
-//             Speaker::instance->isr_playNextSample();
-//         }
-//     }
-// }
+    uint8_t sign = ulaw_byte & 0x80;
+    uint8_t exponent = (ulaw_byte >> 4) & 0x07;
+    uint8_t mantissa = ulaw_byte & 0x0F;
+
+    // Reconstruct 14-bit linear magnitude with bias added back
+    int32_t sample = ((mantissa << 3) + 0x84) << exponent;
+    sample -= BIAS;
+
+    return (sign) ? -((int16_t)sample) : (int16_t)sample;
+}

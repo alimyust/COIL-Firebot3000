@@ -12,7 +12,7 @@ public:
     void beginTimer();
     // Pushes sample into the buffer (called by AudioHandler)
     bool queueAudio(int16_t pcm_sample);
-    
+    uint16_t getBufferCount() const { return _count; }
     // Pops sample from buffer to DAC (called by the Timer ISR)
     void isr_playNextSample();
 

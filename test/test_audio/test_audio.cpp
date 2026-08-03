@@ -1,88 +1,101 @@
-// #include <Arduino.h>
-// #include <unity.h>
 
-// // Include only your direct hardware abstraction layer logic
-// #include "Microphone.hpp"
-// #include "Speaker.hpp"
+#include <Arduino.h>
 
-// // Setup hardware objects
-// Microphone mic;
-// Speaker speaker; // Ensure this maps to your DAC pin (e.g., Speaker speaker(A0) if needed)
+#include "handlers/scheduler.h"
+#include "handlers/ControllerHandler.hpp"
+#include "handlers/AudioHandler.hpp"
 
-// void setUp(void) {
-//     // This runs before every single test case
-// }
+#include "radio.h"
 
-// void tearDown(void) {
-//     // This runs after every single test case
-// }
+#include "Joystick.hpp"
+#include "ProtocolCommands.h"
+#include "Microphone.hpp"
+#include "Speaker.hpp"
 
-// // ============================================================================
-// // TEST CASES
-// // ============================================================================
+#include "display.h"
 
-// void test_peripherals_initialization(void) {
-//     // Test that initializing hardware peripherals completes without crashing
-//     speaker.begin();
-//     mic.begin(); // Spawns the ADC configuration and DMAC Jobs
+RadioComm radio(2, 434.0, 8, 3, 4); // Node 2 (Controller)
+EventScheduler eventScheduler(radio, false);
+// Joystick joystick_motor;
+// Joystick joystick_turret;    
+Microphone microphone;
+Speaker speaker;
+// DisplayOLED oled(false);
+
+// Instantiate AudioHandler with debugging turned ON
+AudioHandler audioHandler(eventScheduler, microphone, speaker, false);
+
+// Diagnostic Counters
+volatile uint32_t packets_processed = 0;
+volatile uint32_t total_samples_queued = 0;
+
+void setup() {
+    Serial.begin(115200);
     
-//     // If the board gets here without dropping off the native USB stack,
-//     // your register modifications inside adc_init() and dma_init() are valid.
-//     TEST_PASS();
-// }
+    // Wait up to 3 seconds for Serial Monitor connection
+    uint32_t start_time = millis();
+    while (!Serial && (millis() - start_time < 3000));
 
-// void test_live_dmac_and_dac_loopback(void) {
-//     Serial.println("\n==================================================");
-//     Serial.println("RUNNING HARDWARE-ONLY AUDIO LOOPBACK");
-//     Serial.println("Make noise into the microphone!");
-//     Serial.println("Captured buffer blocks will copy directly to the Speaker.");
-//     Serial.println("==================================================");
+    Serial.println("\n==========================================");
+    Serial.println(" SAMD21 Full-Duplex Local Loopback Test   ");
+    Serial.println("==========================================");
 
-//     int16_t local_pcm_buffer[SAMPLE_BLOCK_LENGTH];
-//     unsigned long start_time = millis();
-//     uint32_t buffers_processed_count = 0;
+    // 1. Initialize Hardware Speaker (DAC + TC3 Interrupt)
+    speaker.begin();
+    Serial.println("[OK] Speaker / DAC initialized at 8 kHz.");
 
-//     // Run verification loop window for 5 seconds
-//     while (millis() - start_time < 5000) {
+    // 2. Initialize Hardware Microphone (ADC + EVSYS + TC4 Timer + DMA)
+    microphone.begin();
+    Serial.println("[OK] Microphone / ADC initialized at 8 kHz.");
+
+    Serial.println("\n[STATUS] Passthrough active: Speak into mic to hear output on A0.\n");
+}
+
+void loop() {
+    // ========================================================================
+    // 1. AUDIO PASSTHROUGH LOOP
+    // ========================================================================
+    if (microphone.isBufferReady()) {
+        int16_t raw_pcm_buffer[SAMPLE_BLOCK_LENGTH];
         
-//         // 1. Direct hardware flag check (Bypasses scheduler updates entirely)
-//         if (mic.isBufferReady()) {
-            
-//             // 2. Read, center, and shift raw 12-bit unsigned ADC samples to signed 16-bit PCM
-//             mic.readActiveBuffer(local_pcm_buffer);
-            
-//             // 3. Directly stream the raw samples out to the speaker hardware
-//             for (int i = 0; i < SAMPLE_BLOCK_LENGTH; i++) {
-//                 speaker.write(local_pcm_buffer[i]);
-//             }
-            
-//             buffers_processed_count++;
-//         }
+        // Fetch raw samples from the active DMA ping-pong buffer
+        microphone.readActiveBuffer(raw_pcm_buffer);
+
+        // --- HIJACK / PASSTHROUGH STEP ---
+        // Instead of triggering onAudioTrigger() which broadcasts via radio,
+        // we manually construct the audio packet and feed it straight back in.
         
-//         yield(); // Feed native USB watchdogs to keep connection stable
-//     }
+        ProtocolCommands::RadioAudioPacket local_packet;
+        static uint16_t seq_counter = 0;
+        local_packet.sequence = seq_counter++;
 
-//     // Print processing summary metrics to the test console
-//     Serial.print("Total hardware buffer cycles completed: ");
-//     Serial.println(buffers_processed_count);
+        // Compress full block using G.711 u-law encoder
+        const size_t encoded_samples = SAMPLE_BLOCK_LENGTH / 2;
+        for (size_t i = 0; i < encoded_samples; i++) {
+            local_packet.data[i] = audioHandler.encodeSample(raw_pcm_buffer[i]);
+        }
 
-//     // Assert that the DMAC actually filled the ping-pong destination registers at least once
-//     TEST_ASSERT_TRUE_MESSAGE(buffers_processed_count > 0, "Hardware Failure: DMAC never flipped the buffer flag. Check your clock lines and peripheral triggers!");
-// }
+        // Send immediately into the RX pipeline (Decompress + Queue to Speaker)
+        audioHandler.processAudio(local_packet);
 
-// // ============================================================================
-// // MAIN UNITY TEST RUNNER ENTRYPOINT
-// // ============================================================================
-// void setup() {
-//     // Wait for native USB serial connection to open safely
-//     delay(2000); 
-    
-//     UNITY_BEGIN();
-//     RUN_TEST(test_peripherals_initialization);
-//     RUN_TEST(test_live_dmac_and_dac_loopback);
-//     UNITY_END();
-// }
+        // Update telemetry counters
+        packets_processed++;
+        total_samples_queued += encoded_samples;
+    }
 
-// void loop() {
-//     // Left empty for testing environments
-// }
+    // ========================================================================
+    // 2. REAL-TIME DIAGNOSTIC METRICS (Printed every 2 seconds)
+    // ========================================================================
+    static uint32_t last_telemetry_time = 0;
+    if (millis() - last_telemetry_time >= 2000) {
+        last_telemetry_time = millis();
+
+        Serial.print("[STATS] Packets Processed: ");
+        Serial.print(packets_processed);
+        Serial.print(" | Total Samples: ");
+        Serial.print(total_samples_queued);
+        Serial.print(" | Speaker Ring Buffer Level: ");
+        Serial.print(speaker.getBufferCount()); // Ensure you have a getter or access to count
+        Serial.println(" / 256");
+    }
+}
