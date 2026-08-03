@@ -15,7 +15,6 @@ bool Microphone::adc_buffer_filled = false;
 // MEMBER FUNCTION IMPLEMENTATIONS
 // ============================================================================
 
-
 Microphone::Microphone() {
     filling_first_half = true;
     active_adc_buffer = nullptr;
@@ -66,7 +65,7 @@ void Microphone::adc_init() {
     ADC->CTRLA.bit.ENABLE = 1;
     ADCsync();
 
-    // Start TC4 to generate the 8 kHz event stream
+    // Start TC4 to generate the 16 kHz event stream
     beginAdcTimer();
 }
 
@@ -87,8 +86,9 @@ void Microphone::beginAdcTimer() {
                              TC_CTRLA_WAVEGEN_MFRQ;
     while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
 
-    // 3,000,000 / 8,000 Hz = 375 ticks (CC0 = 374)
-    TC4->COUNT16.CC[0].reg = 374; 
+    // 3,000,000 / 16,000 Hz = 187.5 ticks (~188 ticks total)
+    // CC0 = 188 - 1 = 187 (Yields ~15,957 Hz, matching TC3)
+    TC4->COUNT16.CC[0].reg = 187; 
     while (TC4->COUNT16.STATUS.bit.SYNCBUSY);
 
     // Enable Event Output on Match (No CPU Interrupt needed!)
@@ -100,11 +100,11 @@ void Microphone::beginAdcTimer() {
     // Wire EVSYS User ADC_START to Channel 0
     EVSYS->USER.reg = EVSYS_USER_CHANNEL(1) | EVSYS_USER_USER(EVSYS_ID_USER_ADC_START);
     
-    // Set Channel 0 generator to TC4 MCX0 (Match 0)
-// Set Channel 0 generator to TC4 Match 0 (Notice the underscore: MC_0)
+    // Set Channel 0 generator to TC4 Match 0 (Notice the underscore: MC_0)
     EVSYS->CHANNEL.reg = EVSYS_CHANNEL_CHANNEL(0) | 
                         EVSYS_CHANNEL_EVGEN(EVSYS_ID_GEN_TC4_MCX_0) | 
                         EVSYS_CHANNEL_PATH_ASYNCHRONOUS;
+                        
     // 5. Enable TC4
     TC4->COUNT16.CTRLA.reg |= TC_CTRLA_ENABLE;
     while (TC4->COUNT16.STATUS.bit.SYNCBUSY);

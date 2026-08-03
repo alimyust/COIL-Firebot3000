@@ -12,7 +12,8 @@ namespace ProtocolCommands {
     enum CommandId : uint8_t {
         CMD_MOTOR = 0x01, // encapsulates throttle, steering, turretX, turretY
         CMD_SENSORS = 0x02, // All sensor payloads and CO sensor (not implemented yet)
-        CMD_AUDIO = 0x03,  // All audio packets
+        CMD_AUDIO = 0x03,  // Codec audio packets
+        CMD_AUDIO_RAW = 0x05, // Raw PCM audio packets
         CMD_HB = 0x04,  // Basic heartbeat (shouold be all telemetry)
     };
 
@@ -40,6 +41,12 @@ namespace ProtocolCommands {
         uint16_t sequence;        // 2 bytes: sequence counter for loss tracking
         uint8_t data[32];         // 35 bytes: 35 u-law encoded audio samples (1 byte/sample)
     };
+    
+    struct __attribute__((packed)) RadioAudioPacketRaw {
+        uint16_t sequence;        // 2 bytes: sequence counter for loss tracking
+        int16_t data[24];         // Fits within the 50-byte radio payload budget
+    };
+
 
     struct HeartbeatPayload {
         uint32_t timestamp;

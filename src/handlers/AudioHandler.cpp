@@ -41,6 +41,22 @@ void AudioHandler::processAndSend(const int16_t* pcm_segment) {
     _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_AUDIO, &packet, sizeof(ProtocolCommands::RadioAudioPacket));
 }
 
+void AudioHandler::processAndSendRaw(const int16_t* pcm_segment) {
+    ProtocolCommands::RadioAudioPacketRaw packet;
+    packet.sequence = _global_sequence++;
+
+    const size_t num_samples = 24;
+    for (size_t i = 0; i < num_samples; i++) {
+        packet.data[i] = pcm_segment[i];
+    }
+
+    if (_debug_enabled) {
+        Serial.print("Sending Raw Audio Packet: Seq=");
+        Serial.println(packet.sequence);
+    }
+    _scheduler.sendPacket(TARGET_ROBOT_NODE, CMD_AUDIO_RAW, &packet, sizeof(ProtocolCommands::RadioAudioPacketRaw));
+}
+
 // ============================================================================
 // RECEIVE PATH (RX)
 // ============================================================================
@@ -59,10 +75,31 @@ void AudioHandler::processAudio(const ProtocolCommands::RadioAudioPacket& payloa
     }
 }
 
+void AudioHandler::processAudioRaw(const ProtocolCommands::RadioAudioPacketRaw& payload) {
+    _last_rx_sequence = payload.sequence;
+
+    int16_t pcm_samples[24];
+    decodePacketRaw(&payload, pcm_samples);
+
+    const size_t num_samples = 24;
+    for (size_t i = 0; i < num_samples; i++) {
+        if (!_speaker.queueAudio(pcm_samples[i])) {
+            Serial.println("BUFFER OVERFLOW: Dropped sample!");
+        }
+    }
+}
+
 void AudioHandler::decodePacket(const ProtocolCommands::RadioAudioPacket* packet, int16_t* output_pcm) {
     const size_t num_samples = SAMPLE_BLOCK_LENGTH;
     for (size_t i = 0; i < num_samples; i++) {
         output_pcm[i] = decodeSample(packet->data[i]);
+    }
+}
+
+void AudioHandler::decodePacketRaw(const ProtocolCommands::RadioAudioPacketRaw* packet, int16_t* output_pcm) {
+    const size_t num_samples = 24;
+    for (size_t i = 0; i < num_samples; i++) {
+        output_pcm[i] = packet->data[i];
     }
 }
 
