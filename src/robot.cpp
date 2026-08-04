@@ -6,6 +6,7 @@
 #include "Microphone.hpp"
 #include "Speaker.hpp"
 #include "sensor.h"
+#include "CoSensor.h"
 
 #include "handlers/scheduler.h"
 #include "handlers/RobotHandler.hpp"
@@ -17,6 +18,7 @@ EventScheduler scheduler(radio, false);
 
 MotorDriver motorDriver; 
 Sen66_Sensor sensor;
+CoSensor coSensor;
 RobotHandler robotHandler(scheduler, motorDriver, sensor, false);
 
 Microphone mic;

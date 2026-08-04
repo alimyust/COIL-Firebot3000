@@ -20,27 +20,17 @@ void ControllerHandler::onOLEDTrigger(){
 
 void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& payload) {
     // 1. Update internal state only if incoming values are non-zero
-    _last_co2         = payload.co2;
-    _last_temperature = payload.temperature;
-    _last_humidity    = payload.humidity;
-    _last_vocIndex    = payload.vocIndex;
-    _last_noxIndex    = payload.noxIndex;
-    _last_pm1p0       = payload.pm1p0;
-    _last_pm2p5       = payload.pm2p5;
-    _last_pm4p0       = payload.pm4p0;
-    _last_pm10p0      = payload.pm10p0;
-
-// Serial.printf("SEN66 -> CO2: %.1f ppm | Temp: %.1f C | RH: %.1f %% | VOC: %.0f | NOx: %.0f | PM1.0: %.1f | PM2.5: %.1f | PM4.0: %.1f | PM10: %.1f\n",
-//             _last_co2, 
-//             _last_temperature, 
-//             _last_humidity, 
-//             _last_vocIndex, 
-//             _last_noxIndex,     
-//             _last_pm1p0, 
-//             _last_pm2p5, 
-//             _last_pm4p0, 
-//             _last_pm10p0);  // 2. Clear display and set styling
-            
+    if (payload.co2 > 0)           _last_co2         = payload.co2;
+    if (payload.temperature != 0) _last_temperature = payload.temperature;
+    if (payload.humidity != 0)    _last_humidity    = payload.humidity;
+    if (payload.vocIndex != 0)    _last_vocIndex    = payload.vocIndex;
+    if (payload.noxIndex != 0)    _last_noxIndex    = payload.noxIndex;
+    if (payload.pm1p0 != 0)       _last_pm1p0       = payload.pm1p0;
+    if (payload.pm2p5 != 0)       _last_pm2p5       = payload.pm2p5;
+    if (payload.pm4p0 != 0)       _last_pm4p0       = payload.pm4p0;
+    if (payload.pm10p0 != 0)      _last_pm10p0      = payload.pm10p0;
+    if (payload.coRaw > 0)         _last_coRaw       = payload.coRaw;
+    // 2. Clear display and set styling
     _oled.display.clearDisplay();
     _oled.display.setTextSize(1);       // 6x8 pixels per character
     _oled.display.setTextWrap(false);   // Keep layout aligned
@@ -91,12 +81,16 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     _oled.display.print("P4.0:");
     _oled.display.print(_last_pm4p0, 1);
 
-    // Line 5: PM10.0
+    // Line 5: PM10.0 & CO Raw
     _oled.display.setCursor(col1, 50);
     _oled.display.print("P10 :");
     _oled.display.print(_last_pm10p0, 1);
 
-    // // Push frame buffer to display
+    _oled.display.setCursor(col2, 50);
+    _oled.display.print("CO :");
+    _oled.display.print(_last_coRaw, 1);
+
+    // Push frame buffer to display
     _oled.pushFrame();
 }
 
