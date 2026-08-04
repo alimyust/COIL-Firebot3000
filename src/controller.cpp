@@ -44,7 +44,7 @@ void setup() {
 }
 void loop() {
     radio.update();
-    audioHandler.onAudioTrigger();
+    audioHandler.processAudioLoop();
     scheduler.update();
     // static unsigned long lastPrintTime = 0;
     // constexpr unsigned long PRINT_INTERVAL = 1000;

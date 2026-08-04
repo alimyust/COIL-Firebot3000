@@ -44,6 +44,7 @@ public:
 
     void processAndSend(const int16_t* pcm_segment);
     void processAndSendRaw(const int16_t* pcm_segment);
+    void processAudioLoop();
     void decodePacket(const ProtocolCommands::RadioAudioPacket* packet, int16_t* output_pcm);
     void processAudioRaw(const ProtocolCommands::RadioAudioPacketRaw& payload);
     void decodePacketRaw(const ProtocolCommands::RadioAudioPacketRaw* packet, int16_t* output_pcm);
@@ -62,6 +63,22 @@ private:
     // Sequence counters
     uint16_t _global_sequence;
     uint16_t _last_rx_sequence;
+
+    // Small jitter buffer for packet loss concealment
+    static constexpr size_t kJitterBufferSize = 8;
+    static constexpr size_t kSamplesPerFrame = 24;
+    int16_t _jitter_buffer[kJitterBufferSize][kSamplesPerFrame];
+    size_t _jitter_head;
+    size_t _jitter_tail;
+    size_t _jitter_count;
+    uint16_t _expected_sequence;
+    bool _have_previous_frame;
+    int16_t _last_frame[kSamplesPerFrame];
+    bool _have_last_frame;
+
+    void queueJitterBufferFrame(const int16_t* pcm_samples, uint16_t sequence);
+    void flushJitterBufferToSpeaker();
+    void queueFrameToSpeaker(const int16_t* pcm_samples);
 };
 
 #endif // AUDIO_HANDLER_HPP

@@ -1,30 +1,31 @@
-#ifndef SPEAKER_HPP
-#define SPEAKER_HPP
+#pragma once
 
 #include <Arduino.h>
 
-#define SPEAKER_BUFFER_SIZE 512 // Big enough to hold a few 64-sample blocks
+#define SPEAKER_BUFFER_SIZE 512
 
 class Speaker {
 public:
     Speaker();
     void begin();
-    void beginTimer();
-    // Pushes sample into the buffer (called by AudioHandler)
     bool queueAudio(int16_t pcm_sample);
-    uint16_t getBufferCount() const { return _count; }
-    // Pops sample from buffer to DAC (called by the Timer ISR)
+    
+    // Internal ISR handler called by TC3_Handler
     void isr_playNextSample();
 
-    static Speaker* instance; // Singleton pointer for the C-style ISR
+    // Static instance pointer for global ISR access
+    static Speaker* instance;
 
 private:
-    uint8_t _dac_pin = A0;
+    uint8_t _dac_pin;
     
+    // Ring buffer components
     volatile int16_t _buffer[SPEAKER_BUFFER_SIZE];
     volatile uint16_t _head;
     volatile uint16_t _tail;
     volatile uint16_t _count;
-};
+    volatile int16_t _last_sample;
+    volatile bool _has_last_sample;
 
-#endif // SPEAKER_HPP
+    void beginTimer();
+};
