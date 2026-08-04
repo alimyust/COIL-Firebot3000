@@ -13,8 +13,8 @@ public:
     void begin() {  
     }  
     // Raw reading, still need to be calibrated
-    uint16_t readRaw() {
-        return analogRead(CoSensorConfig::CoPin);
+    float readRaw() {
+        return (float)(CoSensorConfig::CoPin);
     }
 private:
 };

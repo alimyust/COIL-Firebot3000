@@ -79,8 +79,8 @@ private:
     float _last_temperature = 0.0f;
     float _last_vocIndex    = 0.0f;
     float _last_noxIndex    = 0.0f;
-    uint16_t _last_co2      = 0;
-    uint16_t _last_coRaw    = 0;
+    uint16_t _last_co2      = 0.0f;
+    uint16_t _last_coRaw    = 0.0f;
 };
 
 #endif // CONTROLLER_HANDLER_HPP

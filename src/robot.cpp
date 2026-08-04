@@ -13,13 +13,12 @@
 #include "handlers/AudioHandler.hpp"
 
 
-RadioComm radio(1, 434.0, 8, 3, 4); // Node 1 (Robot)
+RadioComm radio(1, 915.0, 8, 3, 4); // Node 1 (Robot)
 EventScheduler scheduler(radio, false); 
-
 MotorDriver motorDriver; 
 Sen66_Sensor sensor;
 CoSensor coSensor;
-RobotHandler robotHandler(scheduler, motorDriver, sensor, false);
+RobotHandler robotHandler(scheduler, motorDriver, sensor, coSensor, false);
 
 Microphone mic;
 Speaker speaker;
@@ -34,10 +33,18 @@ void setup() {
     speaker.begin();
     audioHandler.beginTimer();
     // scheduler.registerPacketHandler(ProtocolCommands::CMD_MOTOR, EventPriority::PRIORITY_HIGH, RobotHandler::onMotorReceived, &robotHandler);
-    scheduler.registerPacketHandler(ProtocolCommands::CMD_AUDIO, EventPriority::PRIORITY_CRITICAL, AudioHandler::onAudioPacketReceived, &audioHandler);
+    scheduler.registerPacketHandler(
+        ProtocolCommands::CMD_AUDIO,
+         EventPriority::PRIORITY_CRITICAL,
+          AudioHandler::onAudioPacketReceived,
+           &audioHandler);
     // scheduler.registerPacketHandler(ProtocolCommands::CMD_HB, EventPriority::PRIORITY_LOW, RobotHandler::onHeartbeatReceived, &robotHandler);
     // scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_MEDIUM, RobotHandler::onSensorUpdate, &robotHandler);
-
+    scheduler.registerPacketHandler(
+        ProtocolCommands::CMD_AUDIO, 
+        EventPriority::PRIORITY_HIGH,
+        RobotHandler::onMotorReceived,
+          &robotHandler);
 }
 void loop() {
     radio.update();

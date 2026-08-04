@@ -9,7 +9,7 @@ void ControllerHandler::onJoystickTrigger() {
     _joystick_motor.update_joystick(steer, throttle);
     _joystick_turret.update_joystick(turret_x, turret_y);
 
-    ProtocolCommands::MotorPayload motor_payload = {steer, throttle, turret_x, turret_y};
+    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, turret_x, turret_y};
     _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_MOTOR, &motor_payload, sizeof(motor_payload));
 }
 

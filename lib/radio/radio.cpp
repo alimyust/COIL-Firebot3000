@@ -5,7 +5,7 @@ RadioComm::RadioComm(uint8_t node_id, float frequency, uint8_t cs_pin,
                      uint8_t int_pin, uint8_t rst_pin)
   : _radio(cs_pin, int_pin), _node_id(node_id), _frequency(frequency),
      _int_pin(int_pin), _rst_pin(rst_pin), _tx_in_progress(false),
-    _debug_enabled(false), _last_rssi(0),
+    _debug_enabled(true), _last_rssi(0),
     _rx_head(0), _rx_tail(0), _rx_count(0),
     _tx_head(0), _tx_tail(0), _tx_count(0) {}
 
