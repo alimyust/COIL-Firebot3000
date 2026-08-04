@@ -27,6 +27,7 @@ void RobotHandler::processMotor(const ProtocolCommands::MotorPayload& payload){
     _motor_driver.set_PWM_2(payload.throttle_duty);
     _motor_driver.setTurretPan(payload.turret_x_duty);
     _motor_driver.setTurretTilt(payload.turret_y_duty);
+    if(_debug) Serial.println("motors brrr");
 }
 
 void RobotHandler::onSensorTrigger(){

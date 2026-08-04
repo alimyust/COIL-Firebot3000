@@ -27,7 +27,7 @@ AudioHandler audioHandler(scheduler, mic,speaker, false);
 void setup() {
 
     Serial.begin(115200);
-    while(!Serial);
+    // while(!Serial);
 
     radio.begin();
     joystick_motor.init_joystick();
