@@ -15,12 +15,16 @@ DisplayOLED::DisplayOLED(bool debug_enabled)
 
 void DisplayOLED::begin() {
     // 1. Force fast I2C mode
+    // Wire.begin();
     // Wire.setClock(400000); 
-
     // 2. Initialize the OLED normally (Let Adafruit handle the heavy startup config)
-    display.begin(0x3C, true); 
-    display.clearDisplay();
-    display.display();
+    Serial.println("Initializing OLED Display");
+    delay(250); // wait for the OLED to power up
+    display.begin(0x3C, true);
+    Serial.println("Finished OLED Display");
+ 
+    display.display();  
+    delay(20);
     display.setRotation(1);
     display.setTextSize(1);
     display.setCursor(0,0);

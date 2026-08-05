@@ -146,6 +146,8 @@ private:
             Serial.print(F("Steering: ")); Serial.println(p->steer_duty);
             Serial.print(F("Turret X: ")); Serial.println(p->turret_x_duty);
             Serial.print(F("Turret Y: ")); Serial.println(p->turret_y_duty);
+            Serial.print(F("Cam Mux: ")); Serial.println(p->camera_mux);
+            Serial.print(F("Light Mux: ")); Serial.println(p->light_mux);
             break;
         }
 

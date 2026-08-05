@@ -27,25 +27,33 @@ AudioHandler audioHandler(scheduler, mic, speaker, false); // Initialize AudioHa
 
 void setup() {
     Serial.begin(115200);
-
+    // while(!Serial);
+    pinMode(10, OUTPUT);
     radio.begin(); 
     motorDriver.init_motor();
     // sensor.begin();
-    // speaker.begin();
-    // audioHandler.beginTimer();
-    // scheduler.registerPacketHandler(ProtocolCommands::CMD_MOTOR, EventPriority::PRIORITY_HIGH, RobotHandler::onMotorReceived, &robotHandler);
-    // scheduler.registerPacketHandler(
-    //     ProtocolCommands::CMD_AUDIO,
-    //      EventPriority::PRIORITY_CRITICAL,
-    //       AudioHandler::onAudioPacketReceived,
-    //        &audioHandler);
-    // scheduler.registerPacketHandler(ProtocolCommands::CMD_HB, EventPriority::PRIORITY_LOW, RobotHandler::onHeartbeatReceived, &robotHandler);
-    // scheduler.addPeriodicTask(1000, EventPriority::PRIORITY_MEDIUM, RobotHandler::onSensorUpdate, &robotHandler);
+    // coSensor.begin();
+
     scheduler.registerPacketHandler(
-        ProtocolCommands::CMD_MOTOR, 
+        ProtocolCommands::CMD_MOTOR,
         EventPriority::PRIORITY_HIGH,
         RobotHandler::onMotorReceived,
-          &robotHandler);
+        &robotHandler
+    );
+    
+    scheduler.registerPacketHandler(
+        ProtocolCommands::CMD_HB,
+        EventPriority::PRIORITY_LOW,
+        RobotHandler::onHeartbeatReceived,
+        &robotHandler
+    );
+
+    scheduler.addPeriodicTask(
+        1000,
+        EventPriority::PRIORITY_MEDIUM,
+        RobotHandler::onSensorUpdate,
+        &robotHandler);
+
 }
 void loop() {
     radio.update();

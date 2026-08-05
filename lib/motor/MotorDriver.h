@@ -1,6 +1,6 @@
 #pragma once
 
-#include "QuadHWPwm.hpp"
+#include "PentaHWPwm.hpp"
 #include "Joystick.hpp"
 #include "TurretGearMap.h"
 
@@ -20,20 +20,22 @@ class MotorDriver {
 public:
     MotorDriver(bool debug = false)
         : 
-        _pwm(9, 5, 6, 7), // 9 throttle, 5 steering, 6 servo1, 7 servo2 (I think?)
+        _pwm(), // 9 throttle, 5 steering, 6 servo1, 7 servo2 (I think?)
         _debug(debug),
         _turretPan(), //continuous servo, no gear ratio/angle range to configure
         _turretTilt(0.0f, 60.0f, TiltServoConfig::SERVO_MAX_ANGLE_DEG) {}
     
     void init_motor(){
         _pwm.begin(60, 50); // 60Hz for motors, 50Hz for servos
-        _pwm.setDutyCycle1(0);
-        _pwm.setDutyCycle2(0);
-        _pwm.setDutyCycle3(_turretPan.computeDutyPercentFromJoystick(128));
-        _pwm.setDutyCycle4(_turretTilt.computeDutyPercent(30.0f));
+        _pwm.setDuty13(0);
+        _pwm.setDuty11(0);
+
+        _pwm.setDuty5(0);
+        _pwm.setDuty6(0);
+        _pwm.setDuty12(0);
     }
 
-    void set_PWM_1(uint8_t duty) { // input duty is 0-255 from joystick
+    void setThrottlePWM(uint8_t duty) { // input duty is 0-255 from joystick
         float map_duty = mapAroundNeutral(duty,
             JoystickConfig::JOY_MIN,
             JoystickConfig::JOY_CENTER,
@@ -43,10 +45,10 @@ public:
             MotorConfig::THROTTLE_MAX
         );
 
-        _pwm.setDutyCycle1(map_duty);//output is mapped to 7-11 for throttle control with float precision
+        _pwm.setDuty13(map_duty);//output is mapped to 7-11 for throttle control with float precision
     }
 
-    void set_PWM_2(uint8_t duty) {
+    void setSteerPWM(uint8_t duty) {
     float map_duty = mapAroundNeutral(duty,
         JoystickConfig::JOY_MIN,
         JoystickConfig::JOY_CENTER,
@@ -56,21 +58,30 @@ public:
         MotorConfig::STEERING_MAX
     );
              
-        _pwm.setDutyCycle2(map_duty);
+        _pwm.setDuty11(map_duty);
     }
 
     //duty percent using the gear ratio math
     void setTurretPan(uint8_t duty) {
-        _pwm.setDutyCycle3(_turretPan.computeDutyPercentFromJoystick(duty));
+        Serial.println("Setting turret pan duty: " + String(duty));
+        _pwm.setDuty5(_turretPan.computeDutyPercentFromJoystick(duty));
     }
     void setTurretTilt(uint8_t duty) {
-        _pwm.setDutyCycle4(_turretTilt.computeDutyPercentFromJoystick(duty));
+        Serial.println("Setting turret tilt duty: " + String(duty));    
+        _pwm.setDuty6(_turretTilt.computeDutyPercentFromJoystick(duty));
     }
+
+    void setCameraMux(bool duty){
+        if (duty == true) _pwm.setDuty12(5.0F);
+        else _pwm.setDuty12(3.0F);
+    }
+
+
     float getTurretPanSpeedPercent() const { return _turretPan.getLastCommandedSpeedPercent(); }
     float getTurretTiltAngle() const { return _turretTilt.getOutputAngle(); }
     
 private:
-    QuadHardwarePWM _pwm;
+    PentaHardwarePWM _pwm;
     bool _debug;
     ContinuousServoAxis _turretPan;
     PositionalServoAxis _turretTilt;

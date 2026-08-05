@@ -6,10 +6,11 @@ ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joysti
 
 void ControllerHandler::onJoystickTrigger() {
     int steer, throttle, turret_x, turret_y;
-    _joystick_motor.update_joystick(steer, throttle);
-    _joystick_turret.update_joystick(turret_x, turret_y);
+    bool light_mux, camera_mux;
+    _joystick_motor.update_joystick(steer, throttle, camera_mux);
+    _joystick_turret.update_joystick(turret_x, turret_y, light_mux);
 
-    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, turret_x, turret_y};
+    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, turret_x, turret_y ,camera_mux, light_mux};
     _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_MOTOR, &motor_payload, sizeof(motor_payload));
 }
 
@@ -30,6 +31,7 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     if (payload.pm4p0 != 0)       _last_pm4p0       = payload.pm4p0;
     if (payload.pm10p0 != 0)      _last_pm10p0      = payload.pm10p0;
     if (payload.coRaw > 0)         _last_coRaw       = payload.coRaw;
+    Serial.println("Sensor data updated");
     // 2. Clear display and set styling
     _oled.display.clearDisplay();
     _oled.display.setTextSize(1);       // 6x8 pixels per character
@@ -91,6 +93,7 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     _oled.display.print(_last_coRaw, 1);
 
     // Push frame buffer to display
+    Serial.println("I should be printing why am I not printing");
     _oled.pushFrame();
 }
 

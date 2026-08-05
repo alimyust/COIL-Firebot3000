@@ -12,16 +12,18 @@ namespace JoystickConfig {
 
 class Joystick {
 public:
-    Joystick(uint8_t joyXPin = A3, uint8_t joyYPin = A2, bool debug = false)
+    Joystick(uint8_t joyXPin, uint8_t joyYPin, uint8_t joySwitchPin, bool debug = false)
         : joyXPin(joyXPin),
           joyYPin(joyYPin),
+          joySwitchPin(joySwitchPin),
           debug_enabled(debug) {}
 
     void init_joystick();
-    void update_joystick(int &outX, int &outY);
+    void update_joystick(int &outX, int &outY, bool &outZ);
 
 private:
     uint8_t joyXPin;
     uint8_t joyYPin;
+    uint8_t joySwitchPin;
     bool debug_enabled;
 };

@@ -15,12 +15,14 @@ namespace ProtocolCommands {
         CMD_AUDIO = 0x03,  // All audio packets
         CMD_HB = 0x04,  // Basic heartbeat (shouold be all telemetry)
     };
-
+    //all pwm signals for the robot (including camera mux)
     struct MotorPayload {
         uint8_t throttle_duty;
         uint8_t steer_duty;
         uint8_t turret_x_duty;
         uint8_t turret_y_duty;
+        bool camera_mux;
+        bool light_mux;
     };
 
     struct SensorPayload {
