@@ -7,8 +7,8 @@
  
 namespace PanServoConfig {
     //  Duty cycle range 50Hz (20ms period): test range 1ms min and 2ms max, or 5% and 10%
-    static constexpr float SERVO_MIN_DUTY_PERCENT = 5.0f;
-    static constexpr float SERVO_MAX_DUTY_PERCENT = 10.0f;
+    static constexpr float SERVO_MIN_DUTY_PERCENT = 6.0f;
+    static constexpr float SERVO_MAX_DUTY_PERCENT = 9.0f;
     static constexpr float STOP_DUTY_PERCENT = (SERVO_MIN_DUTY_PERCENT + SERVO_MAX_DUTY_PERCENT) / 2.0f;
     // joystick deadzone, in raw 0 to 255 so centered on 128
     static constexpr int JOYSTICK_DEADZONE = 10;

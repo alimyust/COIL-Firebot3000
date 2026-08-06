@@ -3,12 +3,11 @@
 
 #include <Adafruit_ZeroDMA.h>
 
-#define ADC_PIN A1
 #define SAMPLE_BLOCK_LENGTH 64
 
 class Microphone {
     public:
-        Microphone();
+        Microphone(uint8_t adc_pin = A1);
         void begin();
         bool isBufferReady();
         void readActiveBuffer(int16_t* output_buffer);
@@ -24,6 +23,8 @@ class Microphone {
         static bool filling_first_half;
         static volatile uint16_t *active_adc_buffer;
         static bool adc_buffer_filled;
+
+        uint8_t _adc_pin;
 
         static void ADCsync() {
            while (ADC->STATUS.bit.SYNCBUSY == 1);

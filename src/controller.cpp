@@ -13,16 +13,37 @@
 
 #include "display.h"
 
-RadioComm radio(2, 915.0, 8, 3, 4); // Node 2 (Controller)
+namespace ControllerPins {
+    constexpr uint8_t JOYSTICK_MOTOR_X_PIN = A3;
+    constexpr uint8_t JOYSTICK_MOTOR_Y_PIN = A2;
+    constexpr uint8_t JOYSTICK_MOTOR_SWITCH_PIN = 13;
+
+    constexpr uint8_t JOYSTICK_TURRET_X_PIN = A4;
+    constexpr uint8_t JOYSTICK_TURRET_Y_PIN = A5;
+    constexpr uint8_t JOYSTICK_TURRET_SWITCH_PIN = 12;
+
+    constexpr uint8_t WALKIE_MUX_PIN = 10; // transistor control pin for walkie mux
+    constexpr uint8_t WALKIE_STATE_PIN = 11; // button to enable talking
+    // low listening, high sending
+
+    constexpr uint8_t RADIO_CS_PIN = 8;
+    constexpr uint8_t RADIO_INT_PIN = 3;
+    constexpr uint8_t RADIO_RST_PIN = 4;
+
+    // constexpr uint8_t AUDIO_MIC_ADC_PIN = A1;
+    // constexpr uint8_t AUDIO_SPEAKER_DAC_PIN = A0;
+}
+
+RadioComm radio(2, 915.0, ControllerPins::RADIO_CS_PIN, ControllerPins::RADIO_INT_PIN, ControllerPins::RADIO_RST_PIN); // Node 2 (Controller)
 EventScheduler scheduler(radio, true);
-Joystick joystick_motor(A3, A2, 5); // throttle, steering, camera_mux
-Joystick joystick_turret(A4, A5, 6); // turret_x, turret_y, light_mux
-Microphone mic;
-Speaker speaker;
+Joystick joystick_motor(ControllerPins::JOYSTICK_MOTOR_X_PIN, ControllerPins::JOYSTICK_MOTOR_Y_PIN, ControllerPins::JOYSTICK_MOTOR_SWITCH_PIN); // throttle, steering, camera_mux
+Joystick joystick_turret(ControllerPins::JOYSTICK_TURRET_X_PIN, ControllerPins::JOYSTICK_TURRET_Y_PIN, ControllerPins::JOYSTICK_TURRET_SWITCH_PIN); // turret_x, turret_y, light_mux
+// Microphone mic(ControllerPins::AUDIO_MIC_ADC_PIN);
+// Speaker speaker(ControllerPins::AUDIO_SPEAKER_DAC_PIN);
 DisplayOLED oled(true);
 
-ControllerHandler controller_handler(scheduler, joystick_motor, joystick_turret, oled, true);
-AudioHandler audioHandler(scheduler, mic,speaker, false);
+ControllerHandler controller_handler(scheduler, joystick_motor, joystick_turret, oled, true, ControllerPins::WALKIE_MUX_PIN, ControllerPins::WALKIE_STATE_PIN);
+// AudioHandler audioHandler(scheduler, mic,speaker, false);
 
 void setup() {
 
@@ -33,20 +54,28 @@ void setup() {
     joystick_motor.init_joystick();
     joystick_turret.init_joystick();
     oled.begin();
-
+    pinMode(ControllerPins::WALKIE_MUX_PIN, OUTPUT);
+    pinMode(ControllerPins::WALKIE_STATE_PIN, INPUT_PULLUP);
     scheduler.addPeriodicTask(
-        500,
+        50,
         EventPriority::PRIORITY_MEDIUM,
         ControllerHandler::onJoystickUpdate, 
         &controller_handler
     );
 
-    // scheduler.addPeriodicTask(
-    //     1000, 
-    //     EventPriority::PRIORITY_LOW, 
-    //     ControllerHandler::onHeartbeat, 
-    //     &controller_handler
-    // );
+    scheduler.addPeriodicTask(
+        1000, 
+        EventPriority::PRIORITY_LOW, 
+        ControllerHandler::onHeartbeat, 
+        &controller_handler
+    );
+
+    scheduler.addPeriodicTask(
+        250,
+        EventPriority::PRIORITY_MEDIUM,
+        ControllerHandler::onMuxUpdate, 
+        &controller_handler
+    );
 
     scheduler.registerPacketHandler(
         ProtocolCommands::CMD_SENSORS, 
@@ -61,12 +90,5 @@ void loop() {
     radio.update();
     scheduler.update();
     oled.update();  
-
-    static unsigned long lastPrint = 0;
-    unsigned long now = millis();
-    if (now - lastPrint >= 1000) {
-        lastPrint = now;
-        Serial.println("1Hz tick");
-    }
 
 }

@@ -9,10 +9,13 @@
 
 class RobotHandler {
 public:
-    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, CoSensor &coSensor, bool debug);
+    RobotHandler(EventScheduler &scheduler, MotorDriver &motor_driver, Sen66_Sensor &sensor, CoSensor &coSensor, bool debug,
+                 uint8_t light_mux_pin, uint8_t walkie_mux_pin, uint8_t camera_mux_pin, 
+                 bool last_light_mux_state, bool last_walkie_mux_state, bool last_camera_mux_state);
 
     // Business logic processing routines called by the scheduler bridges
     void processMotor(const ProtocolCommands::MotorPayload& payload);
+    void processMux(const ProtocolCommands::MuxPayload& payload);
     void handleDiagnostics();
     void processHeartbeat(const ProtocolCommands::HeartbeatPayload& payload);
     void onSensorTrigger();
@@ -27,6 +30,11 @@ public:
     static void onMotorReceived(const RadioComm::RF69_Packet& packet, void* context) {
         const ProtocolCommands::MotorPayload* payload = reinterpret_cast<const ProtocolCommands::MotorPayload*>(packet.payload);
         static_cast<RobotHandler*>(context)->processMotor(*payload);
+    }
+
+    static void onMuxReceived(const RadioComm::RF69_Packet& packet, void* context) {
+        const ProtocolCommands::MuxPayload* payload = reinterpret_cast<const ProtocolCommands::MuxPayload*>(packet.payload);
+        static_cast<RobotHandler*>(context)->processMux(*payload);
     }
 
 
@@ -45,6 +53,18 @@ private:
     Sen66_Sensor &_sensor;
     CoSensor &_coSensor;
     bool _debug;
+    uint8_t _light_mux_pin;
+    uint8_t _walkie_mux_pin;
+    uint8_t _camera_mux_pin;
+    // Tracks current toggled output states
+    bool _light_toggle_state = false;
+    bool _walkie_toggle_state = false;
+    bool _camera_toggle_state = false;
+
+    // Tracks previous button states for edge detection
+    bool _prev_light_button = false;
+    bool _prev_walkie_button = false;
+    bool _prev_camera_button = false;
 
 };
 

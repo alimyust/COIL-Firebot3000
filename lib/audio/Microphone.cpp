@@ -16,7 +16,7 @@ bool Microphone::adc_buffer_filled = false;
 // ============================================================================
 
 
-Microphone::Microphone() {
+Microphone::Microphone(uint8_t adc_pin) : _adc_pin(adc_pin) {
     filling_first_half = true;
     active_adc_buffer = nullptr;
     adc_buffer_filled = false;
@@ -43,13 +43,13 @@ void Microphone::readActiveBuffer(int16_t* output_buffer) {
 }
 
 void Microphone::adc_init() {
-    analogRead(ADC_PIN);
+    analogRead(_adc_pin);
     ADC->CTRLA.bit.ENABLE = 0;
     ADCsync();
     ADC->INPUTCTRL.bit.GAIN = ADC_INPUTCTRL_GAIN_DIV2_Val;
     ADC->REFCTRL.bit.REFSEL = ADC_REFCTRL_REFSEL_INTVCC1;
     ADCsync();
-    ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[ADC_PIN].ulADCChannelNumber;
+    ADC->INPUTCTRL.bit.MUXPOS = g_APinDescription[_adc_pin].ulADCChannelNumber;
     ADCsync();
     ADC->AVGCTRL.reg = 0;
     ADC->SAMPCTRL.reg = 2;

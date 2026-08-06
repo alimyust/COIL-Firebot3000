@@ -1,16 +1,17 @@
 #include "ControllerHandler.hpp"
 #include <stdlib.h>
 
-ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick_motor, Joystick &joystick_turret, DisplayOLED &oled, bool debug_enabled)
-    : _scheduler(scheduler), _joystick_motor(joystick_motor),_joystick_turret(joystick_turret),_oled(oled), _debug_enabled(debug_enabled), _lastThrottleDuty(0), _lastSteeringDuty(0) {}
+ControllerHandler::ControllerHandler(EventScheduler &scheduler, Joystick &joystick_motor, Joystick &joystick_turret, DisplayOLED &oled,
+     bool debug_enabled, uint8_t walkie_mux_pin, uint8_t walkie_state_pin)
+    : _scheduler(scheduler), _joystick_motor(joystick_motor),_joystick_turret(joystick_turret),_oled(oled), _debug_enabled(debug_enabled),
+     _lastThrottleDuty(0), _lastSteeringDuty(0), _walkie_mux_pin(walkie_mux_pin), _walkie_state_pin(walkie_state_pin) {}
 
 void ControllerHandler::onJoystickTrigger() {
     int steer, throttle, turret_x, turret_y;
-    bool light_mux, camera_mux;
-    _joystick_motor.update_joystick(steer, throttle, camera_mux);
-    _joystick_turret.update_joystick(turret_x, turret_y, light_mux);
+    _joystick_motor.update_joystick(steer, throttle);
+    _joystick_turret.update_joystick(turret_x, turret_y);
 
-    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, turret_x, turret_y ,camera_mux, light_mux};
+    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, 1023 - turret_x, turret_y};
     _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_MOTOR, &motor_payload, sizeof(motor_payload));
 }
 
@@ -93,8 +94,29 @@ void ControllerHandler::processSensor(const ProtocolCommands::SensorPayload& pay
     _oled.display.print(_last_coRaw, 1);
 
     // Push frame buffer to display
-    Serial.println("I should be printing why am I not printing");
     _oled.pushFrame();
+}
+
+void ControllerHandler::onMuxTrigger() {
+    bool light_mux, walkie_mux, camera_mux;
+    _joystick_motor.update_switch(camera_mux);
+    _joystick_turret.update_switch(light_mux);
+    walkie_mux = (digitalRead(_walkie_state_pin) == HIGH);
+
+    digitalWrite(_walkie_mux_pin, walkie_mux ? LOW : HIGH); // Control the transistor for walkie mux
+
+    ProtocolCommands::MuxPayload mux_payload = {light_mux, walkie_mux, camera_mux};
+
+    _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_MUX, &mux_payload, sizeof(mux_payload));
+
+    if (_debug_enabled) {
+        Serial.print("Mux Payload sent - Light: ");
+        Serial.print(light_mux);
+        Serial.print(", Camera: ");
+        Serial.println(camera_mux);
+        Serial.print("Walkie: ");
+        Serial.println(walkie_mux);
+    }
 }
 
 void ControllerHandler::onHeartbeatTrigger() {

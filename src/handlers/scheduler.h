@@ -146,8 +146,8 @@ private:
             Serial.print(F("Steering: ")); Serial.println(p->steer_duty);
             Serial.print(F("Turret X: ")); Serial.println(p->turret_x_duty);
             Serial.print(F("Turret Y: ")); Serial.println(p->turret_y_duty);
-            Serial.print(F("Cam Mux: ")); Serial.println(p->camera_mux);
-            Serial.print(F("Light Mux: ")); Serial.println(p->light_mux);
+            // Serial.print(F("Cam Mux: ")); Serial.println(p->camera_mux);
+            // Serial.print(F("Light Mux: ")); Serial.println(p->light_mux);
             break;
         }
 
@@ -191,6 +191,16 @@ private:
             Serial.println(F("=== Heartbeat Payload ==="));
             Serial.print(F("Timestamp: "));
             Serial.println(p->timestamp);
+            break;
+        }
+
+        case ProtocolCommands::CMD_MUX: {
+            const auto* p = static_cast<const ProtocolCommands::MuxPayload*>(payload);
+
+            Serial.println(F("=== Mux Payload ==="));
+            Serial.print(F("Light Mux: ")); Serial.println(p->light_mux);
+            Serial.print(F("Walkie Mux: ")); Serial.println(p->walkie_mux);
+            Serial.print(F("Camera Mux: ")); Serial.println(p->camera_mux);
             break;
         }
 

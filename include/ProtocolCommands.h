@@ -14,6 +14,7 @@ namespace ProtocolCommands {
         CMD_SENSORS = 0x02, // All sensor payloads and CO sensor (not implemented yet)
         CMD_AUDIO = 0x03,  // All audio packets
         CMD_HB = 0x04,  // Basic heartbeat (shouold be all telemetry)
+        CMD_MUX = 0x05, // Mux control for light and camera
     };
     //all pwm signals for the robot (including camera mux)
     struct MotorPayload {
@@ -21,8 +22,13 @@ namespace ProtocolCommands {
         uint8_t steer_duty;
         uint8_t turret_x_duty;
         uint8_t turret_y_duty;
-        bool camera_mux;
+    };
+
+
+    struct MuxPayload {
         bool light_mux;
+        bool walkie_mux;
+        bool camera_mux;
     };
 
     struct SensorPayload {

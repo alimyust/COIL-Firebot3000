@@ -21,7 +21,7 @@ public:
     // static const uint8_t CMD_HB = ProtocolCommands::CMD_HB;
 
     ControllerHandler(EventScheduler &scheduler, Joystick &joystick_motor, Joystick &joystick_turret,
-         DisplayOLED &_oled, bool debug_enabled);
+         DisplayOLED &_oled, bool debug_enabled, uint8_t walkie_mux_pin, uint8_t walkie_state_pin);
 
     /**
      * @brief Triggered at a fixed time slice by the scheduler.
@@ -29,6 +29,7 @@ public:
      */
     void onJoystickTrigger();
     void onHeartbeatTrigger();
+    void onMuxTrigger();
     void processSensor(const ProtocolCommands::SensorPayload& payload);
     void onOLEDTrigger();
     // ========================================================================
@@ -51,6 +52,10 @@ public:
         static_cast<ControllerHandler*>(context)->onJoystickTrigger();
     }
 
+    static void onMuxUpdate(void* context) {
+        static_cast<ControllerHandler*>(context)->onMuxTrigger();
+    }
+
     static void onHeartbeat(void* context) {
         static_cast<ControllerHandler*>(context)->onHeartbeatTrigger();
     }
@@ -70,6 +75,20 @@ private:
 
     uint8_t _lastThrottleDuty;
     uint8_t _lastSteeringDuty;
+
+    bool _last_light_mux_state = false;
+    bool _last_camera_mux_state = false;
+    bool _last_walkie_mux_state = false;
+    bool _walkie_state_initialized = false;
+    bool _walkie_debounced_state = false;
+    bool _walkie_last_raw_state = false;
+    uint32_t _walkie_last_change_ms = 0;
+    static constexpr uint32_t WALKIE_DEBOUNCE_MS = 30;
+
+    // uint8_t _light_mux_pin;
+    uint8_t _walkie_mux_pin;
+    uint8_t _walkie_state_pin;
+    // uint8_t _camera_mux_pin;
 
     float _last_pm1p0       = 0.0f;
     float _last_pm2p5       = 0.0f;
