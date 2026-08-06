@@ -72,7 +72,7 @@ void setup() {
     );
 
     scheduler.addPeriodicTask(
-        10000,
+        5000,
         EventPriority::PRIORITY_MEDIUM,
         RobotHandler::onSensorUpdate,
         &robotHandler);

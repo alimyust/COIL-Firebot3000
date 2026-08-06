@@ -11,7 +11,7 @@ void ControllerHandler::onJoystickTrigger() {
     _joystick_motor.update_joystick(steer, throttle);
     _joystick_turret.update_joystick(turret_x, turret_y);
 
-    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, 1023 - turret_x, turret_y};
+    ProtocolCommands::MotorPayload motor_payload = {throttle, steer, turret_x, turret_y};
     _scheduler.sendPacket(ProtocolCommands::NODE_ROBOT, ProtocolCommands::CMD_MOTOR, &motor_payload, sizeof(motor_payload));
 }
 
@@ -101,9 +101,9 @@ void ControllerHandler::onMuxTrigger() {
     bool light_mux, walkie_mux, camera_mux;
     _joystick_motor.update_switch(camera_mux);
     _joystick_turret.update_switch(light_mux);
-    walkie_mux = (digitalRead(_walkie_state_pin) == HIGH);
+    walkie_mux = (digitalRead(_walkie_state_pin) == LOW);
 
-    digitalWrite(_walkie_mux_pin, walkie_mux ? LOW : HIGH); // Control the transistor for walkie mux
+    digitalWrite(_walkie_mux_pin, walkie_mux ? HIGH : LOW ); // Control the transistor for walkie mux
 
     ProtocolCommands::MuxPayload mux_payload = {light_mux, walkie_mux, camera_mux};
 
