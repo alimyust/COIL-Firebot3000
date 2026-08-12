@@ -2,12 +2,18 @@
 
 # COIL FireBot3000
 
-This project is built around two main PlatformIO upload targets in `src/`:
+This project is a joint collaboration between Hochschule Ruhr West and Wayne State University as a part of the COIL project. A robot and controller module was constructed to be used by firefighters to explore a scene before going in themselves. The project utilizes the Featherboard M0 RFM69HCW module to communicate between the robot and the controller. 
 
-- `src/controller.cpp` — controller-side entrypoint
-- `src/robot.cpp` — robot-side entrypoint
+This project utilizes an event-driven communication flow which describes what each side should be doing at any time. The radio stack and application logic are connected by an `EventScheduler`, which routes incoming packets and periodic tasks to the relevant handlers and drivers.
 
-The rest of the project is organized into library modules under `lib/`, with each folder containing a specific subsystem.
+## Code Architecture
+
+The active flow is:
+
+- `RadioComm` handles the low-level RF packet transport.
+- `EventScheduler` listens for incoming radio packets and periodic tasks, then dispatches them by command ID and priority.
+- `ControllerHandler` and `RobotHandler` implement the node-specific behavior, describing the contract between the radio and the robot/controller.
+- Driver libraries in `lib/` provide the actual hardware interfaces (motors, sensors, display, radio, audio, etc.) which are decoupled and usable by themselves.
 
 ## Build targets
 
@@ -16,107 +22,64 @@ PlatformIO environments are configured in `platformio.ini`:
 - `env:controller` builds `src/controller.cpp`
 - `env:robot` builds `src/robot.cpp`
 
-## How To Build
+## How to build
 
-To upload the robot code (`src/robot.cpp`) to the robot side featherboard:
+Upload the robot firmware:
 
 - `pio run -e robot -t upload`
 
-To upload the controller code (`src/controller.cpp`) to the controller side featherboard:
+Upload the controller firmware:
 
 - `pio run -e controller -t upload`
 
-To run any of the tests, they must be in the `test/` folder with the prefix `test_[...]/`.
+Run a test in the `test/` folder:
 
-- `pio test -e [robot/controller] -f [test_name]`
+- `pio test -e [robot|controller] -f [test_name]`
 
-For example, to run the quad_pwm test on the robot environment...
+Example:
 
 - `pio test -e robot -f test_motor_quad`
 
 ## Current project structure
 
+- `include/`
+  - Shared public definitions for the project, including `ProtocolCommands.h` for radio command IDs and payload layouts.
+
 - `src/`
-  - `controller.cpp`
-  - `robot.cpp`
+  - Main firmware entry points: `controller.cpp` and `robot.cpp`.
+  - Scheduler and handler logic under `handlers/`, including `scheduler.h`, `ControllerHandler.*`, and `RobotHandler.*`.
 
 - `lib/`
-  - `radio/`
-    - `radio.cpp`
-    - `radio.h`
-  - `ProtocolLayer/`
-    - `ProtocolLayer.cpp`
-    - `ProtocolLayer.hpp`
-  - `ControllerHandler/`
-    - `ControllerHandler.cpp`
-    - `ControllerHandler.hpp`
-  - `RobotHandler/`
-    - `RobotHandler.cpp`
-    - `RobotHandler.hpp`
-  - `joystick/`
-    - `Joystick.cpp`
-    - `Joystick.hpp`
-  - `motor/`
-    - `DualHWPwm.cpp`
-    - `DualHWPwm.hpp`
-    - `QuadHWPwm.cpp`
-    - `QuadHWPwm.hpp`
-    - `MotorDriver.h`
-  - `DebugLog/`
-    - `DebugLog.cpp`
-    - `DebugLog.hpp`
-  - `tagtronics/`
-    - `RFComm.cpp`
-    - `RFComm.hpp`
-    - `TripleHWPwm.cpp`
-    - `TripleHWPwm.hpp`
+  - Hardware and subsystem implementations:
+    - `audio/` — microphone and speaker drivers.
+    - `co_sensor/` — CO sensor interface.
+    - `display/` — OLED display driver.
+    - `joystick/` — joystick input handling.
+    - `motor/` — motor driver and PWM support.
+    - `radio/` — RF communications layer.
+    - `Sensor/` — environmental sensor support.
+    - `tagtronics/` — RF and turret code that was used for COIL 2025
+    - `turret/` — turret mapping definitions.
 
 - `test/`
-  - unit and integration test support directories
+  - PlatformIO test targets for audio, schedulers, handler payloads, and motor behavior.
 
-- root sketches and examples:
-  - `8pwm_receiver.ino`
-  - `Sensiron_receiver.ino`
-  - `Sensiron_Transmitter.ino`
-  - `Turret_empfangen_2.0/`
-  - `Turret_senden/`
+- `arduino_code/`
+  - Legacy Arduino sketches and reference code.
 
-## How to use
+- `platformio.ini`
+  - PlatformIO configuration for the controller and robot targets.
 
-Hardware-specific implementations should be kept inside the appropriate `lib/` subsystem folder and exposed through the handler interfaces used by `controller.cpp` and `robot.cpp`.
+- `README.md`
+  - Project overview and build instructions.
 
-## Radio architecture
+## Runtime flow
 
-The wireless stack is layered into three responsibilities:
+The current runtime pattern is:
 
-1. **Radio layer** (`lib/radio/`)
-   - Provides low-level RF69 packet send/receive functionality.
-   - Handles node addressing, frequency setup, encryption key configuration, and RSSI reporting.
-   - Contains two main classes:
-     - `RF69_Comm` — direct packet transmit/receive with callback support.
-     - `EventRadioComm` — event-driven wrapper that enqueues received packets and telemetry tick events for later processing.
-   - Purpose: keep the physical radio interface separate from message semantics.
+1. `radio.update()` receives packets from the RF module and enqueues them as system events.
+2. `scheduler.update()` evaluates system tasks continously until the queue is empty by dispatching callbacks.
+3. Matching handlers receive the command payload/callback and execute the relevant logic.
+4. Handlers then call driver code or send outbound packets back through the scheduler.
 
-2. **Protocol layer** (`lib/ProtocolLayer/`)
-   - Builds on `EventRadioComm` to define protocol commands and message handling.
-   - Defines command IDs such as `THROTTLE`, `STEERING_DUTY`, `BATTERY`, and `HEARTBEAT`.
-   - Exposes outgoing methods like `sendThrottle()`, `sendSteering()`, `sendBatteryLevel()`, and `sendHeartbeat()`.
-   - Processes events from `EventRadioComm` and routes packets to a registered `ProtocolHandler`.
-   - Purpose: translate raw packets into application-level commands and telemetry, decoupling communication details from control logic.
-
-3. **Handlers**
-   - Implement `ProtocolLayer::ProtocolHandler` to receive protocol events and react accordingly.
-   - `ControllerHandler`:
-     - Runs on the controller side.
-     - Reads joystick inputs, sends throttle and steering commands to the robot.
-     - Receives battery level updates and heartbeat/timing events.
-   - `RobotHandler`:
-     - Runs on the robot side.
-     - Receives throttle and steering commands from the controller.
-     - Drives the motor subsystem and logs incoming messages.
-   - Purpose: contain application-specific behavior for each node, while the protocol layer stays generic.
-
-## Notes
-
-- `src/controller.cpp` and `src/robot.cpp` are the only upload targets for the main system.
-- The radio/protocol/handler split is intentionally layered so the low-level RF transport, protocol semantics, and application actions remain separate.
+This keeps the behavior centralized and event-driven while still separating low-level hardware code from the control logic.
